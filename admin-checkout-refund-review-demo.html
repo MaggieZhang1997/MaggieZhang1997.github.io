@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>CAMP Admin – Checkout Refund</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; background: #f0f2f5; color: #1a1a2e; }
+
+  /* ── Top Bar ── */
+  .topbar {
+    height: 48px; background: #001529; display: flex; align-items: center;
+    padding: 0 20px; gap: 16px; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  }
+  .topbar .logo { color: #fff; font-size: 15px; font-weight: 600; letter-spacing: .5px; }
+  .topbar .logo span { color: #1890ff; }
+  .topbar .breadcrumb { color: #8c8c8c; font-size: 12px; margin-left: auto; }
+  .topbar .breadcrumb a { color: #595959; text-decoration: none; }
+  .topbar .avatar { width: 30px; height: 30px; border-radius: 50%; background: #1890ff;
+    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 12px; }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 200px; position: fixed; top: 48px; left: 0; bottom: 0;
+    background: #001529; overflow-y: auto; z-index: 95;
+  }
+  .menu-group { padding: 8px 0; }
+  .menu-group-title { color: #5a6a7e; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 8px 16px 4px; }
+  .menu-item { display: flex; align-items: center; gap: 8px; padding: 9px 16px; color: #a6adb4; cursor: pointer; font-size: 13px; }
+  .menu-item:hover { background: rgba(255,255,255,.06); color: #e8e8e8; }
+  .menu-item.active { background: #1890ff; color: #fff; }
+  .menu-item .icon { font-size: 14px; width: 16px; text-align: center; }
+
+  /* ── Main ── */
+  .main { margin-left: 200px; margin-top: 48px; padding: 20px 24px; }
+  .page-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .page-sub { color: #8c8c8c; font-size: 12px; margin-bottom: 18px; }
+
+  /* ── Filter Bar ── */
+  .filter-bar {
+    background: #fff; border: 1px solid #e8e8e8; border-radius: 6px;
+    padding: 14px 16px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end;
+  }
+  .f-item { display: flex; flex-direction: column; gap: 4px; }
+  .f-item label { font-size: 11px; color: #8c8c8c; font-weight: 500; }
+  .f-item input[type=text], .f-item input[type=date], .f-item select {
+    height: 30px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 8px; font-size: 12px; outline: none; background: #fff; color: #1a1a2e;
+  }
+  .f-item input:focus, .f-item select:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
+  .f-item.wide input { width: 190px; }
+  .f-range { display: flex; align-items: center; gap: 6px; }
+  .f-range span { color: #bfbfbf; font-size: 12px; }
+
+  /* status multi-select dropdown */
+  .ms-wrap { position: relative; }
+  .ms-box {
+    min-width: 210px; height: 30px; border: 1px solid #d9d9d9; border-radius: 4px;
+    padding: 0 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;
+    cursor: pointer; background: #fff; gap: 6px;
+  }
+  .ms-box:hover { border-color: #1890ff; }
+  .ms-box .ms-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1a1a2e; }
+  .ms-box .ms-arrow { color: #bfbfbf; font-size: 10px; flex-shrink:0; }
+  .ms-panel {
+    display: none; position: absolute; top: 34px; left: 0; z-index: 50;
+    background: #fff; border: 1px solid #e8e8e8; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.1);
+    padding: 8px 0; min-width: 230px;
+  }
+  .ms-panel.open { display: block; }
+  .ms-opt { display: flex; align-items: center; gap: 8px; padding: 6px 14px; cursor: pointer; font-size: 12.5px; }
+  .ms-opt:hover { background: #f5f5f5; }
+  .ms-opt input { cursor: pointer; }
+
+  .btn { height: 30px; padding: 0 14px; border-radius: 4px; font-size: 12.5px; cursor: pointer; border: 1px solid; font-weight: 500; transition: all .15s; }
+  .btn-default { background: #fff; border-color: #d9d9d9; color: #595959; }
+  .btn-default:hover { border-color: #1890ff; color: #1890ff; }
+  .btn-primary { background: #1890ff; border-color: #1890ff; color: #fff; }
+  .btn-primary:hover { background: #40a9ff; border-color: #40a9ff; }
+  .btn-link { background: none; border: none; color: #1890ff; cursor: pointer; font-size: 12.5px; padding: 0; }
+  .btn-link:hover { text-decoration: underline; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.sm { height: 26px; padding: 0 10px; font-size: 12px; }
+
+  /* ── Table ── */
+  .table-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden; }
+  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
+  th { background: #fafafa; color: #595959; font-weight: 600; font-size: 12px; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: #fafcff; }
+  .code-link { color: #1890ff; cursor: pointer; font-weight: 600; }
+  .code-link:hover { text-decoration: underline; }
+  .num { font-variant-numeric: tabular-nums; }
+  .table-foot { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; color: #8c8c8c; font-size: 12px; }
+  .empty-row td { text-align: center; color: #bfbfbf; padding: 40px; }
+
+  /* status pills */
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .pill.PENDING_REFUND_REQUEST { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
+  .pill.PROCESSING { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
+  .pill.PENDING_CHECKER_REVIEW { background: #f9f0ff; color: #722ed1; border: 1px solid #d3adf7; }
+  .pill.PENDING_SAFEHERON_REVIEW { background: #e6fffb; color: #13a8a8; border: 1px solid #87e8de; }
+
+  /* ── Drawer ── */
+  .mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: .2s; z-index: 200; }
+  .mask.on { opacity: 1; pointer-events: auto; }
+  .drawer {
+    position: fixed; top: 0; right: 0; height: 100%; width: 560px; max-width: 94vw;
+    background: #f0f2f5; box-shadow: -8px 0 30px rgba(0,0,0,.15); transform: translateX(100%);
+    transition: .25s; z-index: 210; display: flex; flex-direction: column;
+  }
+  .drawer.on { transform: translateX(0); }
+  .dhead { background: #001529; color: #fff; padding: 16px 22px; position: relative; }
+  .dhead h2 { font-size: 16px; margin-bottom: 3px; }
+  .dhead .did { opacity: .75; font-size: 12px; }
+  .dhead .dclose { position: absolute; top: 14px; right: 18px; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; border: none; background: none; opacity: .8; }
+  .dhead .dclose:hover { opacity: 1; }
+  .dhead .pill { margin-top: 8px; }
+  .dbody { flex: 1; overflow: auto; padding: 18px 22px; }
+
+  .sec-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; }
+  .sec-title { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+  .sec-title::after { content: ''; flex: 1; height: 1px; background: #f0f0f0; }
+
+  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
+  .kv { display: flex; flex-direction: column; gap: 4px; }
+  .kv.full { grid-column: 1 / -1; }
+  .kv label { font-size: 11px; color: #8c8c8c; font-weight: 500; text-transform: uppercase; letter-spacing: .3px; }
+  .kv .val { font-size: 13px; font-weight: 600; color: #1a1a2e; word-break: break-all; }
+  .kv .val.muted { color: #bfbfbf; font-weight: 400; }
+  .kv input[type=text], .kv input[type=number] {
+    height: 30px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none;
+  }
+  .kv input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
+  .kv .hint { font-size: 11px; color: #bfbfbf; }
+
+  .dfoot { padding: 12px 22px; background: #fff; border-top: 1px solid #e8e8e8; display: flex; justify-content: flex-end; gap: 8px; }
+
+  /* toast */
+  .toast {
+    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
+    background: #1a1a2e; color: #fff; padding: 10px 20px; border-radius: 6px;
+    font-size: 13px; z-index: 300; opacity: 0; transition: all .25s; white-space: nowrap; pointer-events: none;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+  .toast.ok { background: #237804; }
+</style>
+</head>
+<body>
+
+<!-- Top Bar -->
+<div class="topbar">
+  <div class="logo">CAMP <span>Admin</span></div>
+  <div class="breadcrumb"><a href="#">Home</a> › Checkout Refund</div>
+  <div class="avatar">OP</div>
+</div>
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="menu-group">
+    <div class="menu-group-title">Home</div>
+    <div class="menu-item active"><span class="icon">💵</span> Checkout Refund</div>
+    <div class="menu-item"><span class="icon">📄</span> Checkout Orders</div>
+    <div class="menu-item"><span class="icon">📊</span> Settlement Statement</div>
+    <div class="menu-item"><span class="icon">⚙️</span> PBS Configuration</div>
+  </div>
+</div>
+
+<!-- Main -->
+<div class="main">
+  <div class="page-title">Checkout Refund</div>
+  <div class="page-sub">Demo · 点击 Code 查看退款详情；根据状态展示 Refund / Review 操作</div>
+
+  <!-- Filter Bar -->
+  <div class="filter-bar">
+    <div class="f-item">
+      <label>Time Range</label>
+      <div class="f-range">
+        <input type="date" id="fFrom" value="2026-07-01">
+        <span>→</span>
+        <input type="date" id="fTo" value="2026-07-22">
+      </div>
+    </div>
+    <div class="f-item wide">
+      <label>Search by Code</label>
+      <input type="text" id="fCode" placeholder="e.g. CKO_900001">
+    </div>
+    <div class="f-item wide">
+      <label>Search by Original Transaction ID</label>
+      <input type="text" id="fOrig" placeholder="e.g. CKO_900001">
+    </div>
+    <div class="f-item">
+      <label>Refund Type</label>
+      <select id="fType">
+        <option value="">All</option>
+        <option value="REFUND">Refund</option>
+        <option value="VOID">Void</option>
+        <option value="RISK_REFUND">Risk Refund</option>
+      </select>
+    </div>
+    <div class="f-item">
+      <label>Status</label>
+      <div class="ms-wrap">
+        <div class="ms-box" id="msBox" onclick="toggleStatusPanel()">
+          <span class="ms-text" id="msText">—</span>
+          <span class="ms-arrow">▾</span>
+        </div>
+        <div class="ms-panel" id="msPanel"></div>
+      </div>
+    </div>
+    <div class="f-item">
+      <label>&nbsp;</label>
+      <div style="display:flex; gap:8px;">
+        <button class="btn btn-primary" onclick="applyFilters()">Search</button>
+        <button class="btn btn-default" onclick="resetFilters()">Reset</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-card">
+    <table>
+      <thead>
+        <tr>
+          <th>Code</th><th>Original Transaction ID</th><th>Refund Type</th>
+          <th>Refund Amount</th><th>Network</th><th>Payment Amount</th>
+          <th>Last Update</th><th>Status</th><th style="width:120px">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+    <div class="table-foot">
+      <span id="rowCount">0 records</span>
+      <span>Page 1 of 1</span>
+    </div>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="mask" id="mask"></div>
+<aside class="drawer" id="drawer">
+  <div class="dhead">
+    <button class="dclose" id="dclose">&times;</button>
+    <h2 id="dTitle">Refund Detail</h2>
+    <div class="did">Code: <span id="dCode">—</span></div>
+    <div id="dPill"></div>
+  </div>
+  <div class="dbody" id="dbody"></div>
+  <div class="dfoot" id="dfoot"></div>
+</aside>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============ Constants ============ */
+const STATUS_LABEL = {
+  PENDING_REFUND_REQUEST: "Pending Refund Request",
+  PROCESSING: "Processing",
+  PENDING_CHECKER_REVIEW: "Pending Checker Review",
+  PENDING_SAFEHERON_REVIEW: "Pending Safeheron Review",
+};
+const TYPE_LABEL = { REFUND: "Refund", VOID: "Void", RISK_REFUND: "Risk Refund" };
+const STATUS_ORDER = ["PENDING_REFUND_REQUEST","PROCESSING","PENDING_CHECKER_REVIEW","PENDING_SAFEHERON_REVIEW"];
+
+/* ============ Mock data ============ */
+let REFUNDS = [
+  { code:"REF_20260701_001", origId:"CKO_900001", type:"REFUND", amount:"—", currency:"—", network:"ETH", updated:"2026-07-01 10:22",
+    status:"PENDING_REFUND_REQUEST",
+    refundId:"REF_20260701_001", conversionId:"", sourceAmount:"20.00 USD", quotation:"", refundAmount:"", refundAsset:"USDT", refundAddress:"",
+    participantCode:"PSP_A_20240301", payerName:"John Doe", paymentAmount:"105.50 USDT", serviceFee:"0.50", serviceFeeCurrency:"USD",
+    refundEmail:"john.doe@example.com" },
+
+  { code:"REF_20260702_002", origId:"CKO_900002", type:"VOID", amount:"12.00", currency:"USDT", network:"TRC20", updated:"2026-07-02 09:05",
+    status:"PROCESSING",
+    refundId:"REF_20260702_002", conversionId:"", sourceAmount:"12.00 USD", quotation:"1 USD = 1.001 USDT", refundAmount:"12.01 USDT", refundAsset:"USDT", refundAddress:"TXy8...9kLQ",
+    participantCode:"PSP_A_20240301", payerName:"Acme Ltd.", paymentAmount:"520.00 USDT", serviceFee:"1.20", serviceFeeCurrency:"USD",
+    refundEmail:"billing@acme.example" },
+
+  { code:"REF_20260702_003", origId:"CKO_900003", type:"REFUND", amount:"80.00", currency:"USDC", network:"ETH", updated:"2026-07-02 15:40",
+    status:"PENDING_CHECKER_REVIEW",
+    refundId:"REF_20260702_003", conversionId:"CNV_20260702_003", sourceAmount:"80.00 USD", quotation:"1 USD = 1.000 USDC", refundAmount:"80.00 USDC", refundAsset:"USDC", refundAddress:"0x9F2b...4aC1",
+    participantCode:"PSP_B_20240512", payerName:"Alice Wong", paymentAmount:"92.00 USDT", serviceFee:"0.80", serviceFeeCurrency:"USD",
+    refundEmail:"alice.wong@example.com" },
+
+  { code:"REF_20260703_004", origId:"CKO_900004", type:"RISK_REFUND", amount:"12.00", currency:"USDT", network:"BSC", updated:"2026-07-03 11:12",
+    status:"PENDING_SAFEHERON_REVIEW",
+    refundId:"REF_20260703_004", conversionId:"CNV_20260703_004", sourceAmount:"12.00 USD", quotation:"1 USD = 1.000 USDT", refundAmount:"12.00 USDT", refundAsset:"USDT", refundAddress:"0x1aB3...77Fe",
+    participantCode:"PSP_B_20240512", payerName:"Bob Chen", paymentAmount:"60.00 USDT", serviceFee:"0.00", serviceFeeCurrency:"USD",
+    refundEmail:"bob.chen@example.com" },
+
+  { code:"REF_20260705_005", origId:"CKO_900005", type:"REFUND", amount:"—", currency:"—", network:"TRC20", updated:"2026-07-05 08:30",
+    status:"PENDING_REFUND_REQUEST",
+    refundId:"REF_20260705_005", conversionId:"", sourceAmount:"200.00 USD", quotation:"", refundAmount:"", refundAsset:"USDT", refundAddress:"",
+    participantCode:"PSP_A_20240301", payerName:"Global Trading Co.", paymentAmount:"1050.00 USDT", serviceFee:"2.50", serviceFeeCurrency:"USD",
+    refundEmail:"finance@globaltrading.example" },
+
+  { code:"REF_20260706_006", origId:"CKO_900006", type:"VOID", amount:"3.50", currency:"USDC", network:"TRC20", updated:"2026-07-06 17:02",
+    status:"PENDING_CHECKER_REVIEW",
+    refundId:"REF_20260706_006", conversionId:"CNV_20260706_006", sourceAmount:"3.50 USD", quotation:"1 USD = 1.000 USDC", refundAmount:"3.50 USDC", refundAsset:"USDC", refundAddress:"TQq2...81Zx",
+    participantCode:"PSP_C_20250110", payerName:"Nova Retail", paymentAmount:"23.50 USDT", serviceFee:"0.30", serviceFeeCurrency:"USD",
+    refundEmail:"ops@novaretail.example" },
+
+  { code:"REF_20260707_007", origId:"CKO_900007", type:"REFUND", amount:"5.00", currency:"USDT", network:"ETH", updated:"2026-07-07 13:45",
+    status:"PENDING_SAFEHERON_REVIEW",
+    refundId:"REF_20260707_007", conversionId:"CNV_20260707_007", sourceAmount:"5.00 USD", quotation:"1 USD = 1.000 USDT", refundAmount:"5.00 USDT", refundAsset:"USDT", refundAddress:"0x77Ca...02Bd",
+    participantCode:"PSP_C_20250110", payerName:"Chen Wei", paymentAmount:"18.00 USDT", serviceFee:"0.10", serviceFeeCurrency:"USD",
+    refundEmail:"chen.wei@example.com" },
+];
+
+let curCode = null;
+
+/* ============ Helpers ============ */
+const $ = s => document.querySelector(s);
+function toast(msg, kind){ const t=$(".toast"); t.textContent=msg; t.className="toast show "+(kind||""); setTimeout(()=>t.className="toast",1900); }
+function pill(s){ return `<span class="pill ${s}">${STATUS_LABEL[s]||s}</span>`; }
+function val(v){ return (v===""||v==null) ? `<span class="val muted">—</span>` : `<span class="val">${v}</span>`; }
+
+/* ============ Status multi-select ============ */
+let statusSel = new Set(["PENDING_CHECKER_REVIEW","PENDING_SAFEHERON_REVIEW"]);
+function renderStatusPanel(){
+  $("#msPanel").innerHTML = STATUS_ORDER.map(s => `
+    <label class="ms-opt">
+      <input type="checkbox" value="${s}" ${statusSel.has(s)?"checked":""} onchange="onStatusToggle('${s}', this.checked)">
+      ${STATUS_LABEL[s]}
+    </label>`).join("");
+  updateStatusText();
+}
+function onStatusToggle(s, checked){
+  if(checked) statusSel.add(s); else statusSel.delete(s);
+  updateStatusText();
+}
+function updateStatusText(){
+  const n = statusSel.size;
+  $("#msText").textContent = n===0 ? "All statuses" : n===STATUS_ORDER.length ? "All statuses" : `${n} selected`;
+}
+function toggleStatusPanel(){ $("#msPanel").classList.toggle("open"); }
+document.addEventListener("click", e => {
+  if(!e.target.closest(".ms-wrap")) $("#msPanel").classList.remove("open");
+});
+
+/* ============ Filters ============ */
+function applyFilters(){ renderRows(); }
+function resetFilters(){
+  $("#fFrom").value="2026-07-01"; $("#fTo").value="2026-07-22";
+  $("#fCode").value=""; $("#fOrig").value=""; $("#fType").value="";
+  statusSel = new Set(["PENDING_CHECKER_REVIEW","PENDING_SAFEHERON_REVIEW"]);
+  renderStatusPanel();
+  renderRows();
+}
+function matchesFilters(r){
+  const from = $("#fFrom").value, to = $("#fTo").value;
+  const day = r.updated.slice(0,10);
+  if(from && day < from) return false;
+  if(to && day > to) return false;
+  const code = $("#fCode").value.trim().toLowerCase();
+  if(code && !r.code.toLowerCase().includes(code)) return false;
+  const orig = $("#fOrig").value.trim().toLowerCase();
+  if(orig && !r.origId.toLowerCase().includes(orig)) return false;
+  const type = $("#fType").value;
+  if(type && r.type !== type) return false;
+  if(statusSel.size && !statusSel.has(r.status)) return false;
+  return true;
+}
+
+/* ============ Table ============ */
+const ACTION_LABEL = { PENDING_REFUND_REQUEST:"Refund", PENDING_CHECKER_REVIEW:"Review" };
+function renderRows(){
+  const rows = REFUNDS.filter(matchesFilters);
+  $("#rowCount").textContent = `${rows.length} record${rows.length===1?"":"s"}`;
+  if(!rows.length){ $("#rows").innerHTML = `<tr class="empty-row"><td colspan="9">No refunds match the current filters</td></tr>`; return; }
+  $("#rows").innerHTML = rows.map(r => {
+    const action = ACTION_LABEL[r.status];
+    const refundAmount = (r.status === "PENDING_REFUND_REQUEST" || r.amount === "—") ? "—" : `${r.amount} ${r.currency}`;
+    return `<tr>
+      <td><span class="code-link" onclick="openDetail('${r.code}')">${r.code}</span></td>
+      <td>${r.origId}</td>
+      <td>${TYPE_LABEL[r.type]}</td>
+      <td class="num">${refundAmount}</td>
+      <td>${r.network}</td>
+      <td class="num">${r.paymentAmount}</td>
+      <td>${r.updated}</td>
+      <td>${pill(r.status)}</td>
+      <td>${ action ? `<button class="btn sm btn-default" onclick="openDetail('${r.code}')">${action}</button>` : `<span style="color:#d9d9d9">—</span>` }</td>
+    </tr>`;
+  }).join("");
+}
+
+/* ============ Drawer ============ */
+function openDetail(code){
+  curCode = code;
+  const r = REFUNDS.find(x => x.code === code);
+  $("#dCode").textContent = r.code;
+  $("#dPill").innerHTML = pill(r.status);
+  renderDetail(r);
+  $("#mask").classList.add("on");
+  $("#drawer").classList.add("on");
+}
+function closeDetail(){ $("#mask").classList.remove("on"); $("#drawer").classList.remove("on"); curCode = null; }
+$("#mask").onclick = closeDetail;
+$("#dclose").onclick = closeDetail;
+
+function renderDetail(r){
+  const editable = r.status === "PENDING_REFUND_REQUEST";
+
+  $("#dbody").innerHTML = `
+    <div class="sec-card">
+      <div class="sec-title">Refund Info</div>
+      <div class="kv-grid">
+        <div class="kv"><label>Refund ID</label>${val(r.refundId)}</div>
+        <div class="kv"><label>Conversion ID</label>${val(r.conversionId)}</div>
+        <div class="kv"><label>Source Amount</label>${val(r.sourceAmount)}</div>
+        <div class="kv"><label>Quotation</label>${val(r.quotation)}</div>
+        <div class="kv"><label>Refund Amount</label>${val(r.refundAmount)}</div>
+        <div class="kv"><label>Refund Asset</label>${val(r.refundAsset)}</div>
+        <div class="kv"><label>Network</label>${val(r.network)}</div>
+        <div class="kv full">
+          <label>Refund Address</label>
+          ${ editable
+            ? `<input type="text" id="inAddr" placeholder="Enter refund address" value="${r.refundAddress||""}">`
+            : val(r.refundAddress) }
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-title">Payer Details</div>
+      <div class="kv-grid">
+        <div class="kv"><label>Participant Code</label>${val(r.participantCode)}</div>
+        <div class="kv"><label>Name</label>${val(r.payerName)}</div>
+        <div class="kv"><label>Payment Amount</label>${val(r.paymentAmount)}</div>
+        <div class="kv"><label>Net Amount</label>${val(r.sourceAmount)}</div>
+        <div class="kv">
+          <label>Metacomp Service Fees</label>
+          ${ editable
+            ? `<input type="number" id="inFee" step="0.01" min="0" value="${r.serviceFee}"><span class="hint">${r.serviceFeeCurrency}</span>`
+            : val(`${r.serviceFee} ${r.serviceFeeCurrency}`) }
+        </div>
+      </div>
+    </div>
+
+    <div class="sec-card">
+      <div class="sec-title">Payee Details</div>
+      <div class="kv-grid">
+        <div class="kv full"><label>Refund Email</label>${val(r.refundEmail)}</div>
+      </div>
+    </div>
+  `;
+
+  let footHtml = `<button class="btn btn-default" onclick="closeDetail()">Close</button>`;
+  if(r.status === "PENDING_REFUND_REQUEST"){
+    footHtml += `<button class="btn btn-primary" onclick="submitRefund()">Submit</button>`;
+  } else if(r.status === "PENDING_CHECKER_REVIEW"){
+    footHtml += `<button class="btn btn-primary" onclick="approveRefund()">Approve</button>`;
+  }
+  $("#dfoot").innerHTML = footHtml;
+}
+
+/* ============ Actions ============ */
+function submitRefund(){
+  const r = REFUNDS.find(x => x.code === curCode);
+  const addr = $("#inAddr") ? $("#inAddr").value.trim() : r.refundAddress;
+  const fee = $("#inFee") ? $("#inFee").value.trim() : r.serviceFee;
+  if(addr) r.refundAddress = addr;
+  if(fee !== "") r.serviceFee = fee;
+  r.status = "PROCESSING";
+  r.updated = new Date().toISOString().slice(0,16).replace("T"," ");
+  renderRows();
+  closeDetail();
+  toast(`${r.code} submitted, now Processing`, "ok");
+
+  // mock: exchange completes asynchronously -> ready for checker review
+  setTimeout(() => {
+    if(r.status !== "PROCESSING") return;
+    r.conversionId = "CNV_" + r.refundId.replace(/^REF_/, "");
+    r.quotation = "1 USD = 1.000 " + r.refundAsset;
+    const src = parseFloat(r.sourceAmount) || 0;
+    r.refundAmount = src.toFixed(2) + " " + r.refundAsset;
+    r.amount = src.toFixed(2);
+    r.currency = r.refundAsset;
+    r.status = "PENDING_CHECKER_REVIEW";
+    r.updated = new Date().toISOString().slice(0,16).replace("T"," ");
+    renderRows();
+    toast(`${r.code} quoted, now Pending Checker Review`, "ok");
+  }, 1800);
+}
+
+function approveRefund(){
+  const r = REFUNDS.find(x => x.code === curCode);
+  r.status = "PENDING_SAFEHERON_REVIEW";
+  r.updated = new Date().toISOString().slice(0,16).replace("T"," ");
+  renderRows();
+  closeDetail();
+  toast(`${r.code} approved, now Pending Safeheron Review`, "ok");
+}
+
+/* ============ init ============ */
+renderStatusPanel();
+renderRows();
+</script>
+</body>
+</html>
