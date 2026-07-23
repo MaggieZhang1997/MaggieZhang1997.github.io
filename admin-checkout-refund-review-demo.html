@@ -4,171 +4,264 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>CAMP Admin – Checkout Refund</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; font-size: 13px; background: #f0f2f5; color: #1a1a2e; }
+  /* ============ Layer 1 · Palette (subset used) ============ */
+  :root {
+    --purple-50:#f3effc; --purple-100:#e5daf8; --purple-600:#6c3ce0; --purple-700:#54269c; --purple-800:#381e72;
+    --teal-500:#13a8a8;
+    --neutral-0:#ffffff; --neutral-50:#f7f7f9; --neutral-100:#eeeef1; --neutral-200:#e2e2e7;
+    --neutral-400:#b3b3bd; --neutral-500:#9494a1; --neutral-600:#75757f; --neutral-800:#3d3d46; --neutral-1000:#16161a;
+    --amber-50:#fff6e6; --amber-200:#ffe1a3; --amber-600:#b76e00; --amber-700:#8a5300;
+    --green-50:#e9f8ef; --green-200:#a7e6bf; --green-600:#1c8a4b; --green-700:#146837;
+    --red-50:#fdeaea; --red-200:#f4b3b3; --red-600:#c22a2a; --red-700:#961f1f;
+    --blue-50:#e8f1fd; --blue-200:#a9cdf6; --blue-600:#1462b8; --blue-700:#0d4a8c;
+  }
 
-  /* ── Top Bar ── */
+  /* ============ Layer 2 · Semantic tokens (light theme) ============ */
+  :root {
+    --surface:var(--neutral-50); --surface-overlay:var(--neutral-0); --surface-glass:rgba(247,247,249,.82);
+    --fill:var(--neutral-100); --item-hover:var(--neutral-100);
+    --border:var(--neutral-100); --border-strong:var(--neutral-200);
+    --text:var(--neutral-1000); --muted:var(--neutral-600); --subtle:var(--neutral-500); --disabled:var(--neutral-400);
+    --accent:var(--purple-800); --accent-hover:var(--purple-600); --accent-subtle:var(--purple-50); --accent-text:var(--purple-700);
+    --on-primary:var(--neutral-0);
+    --warning:var(--amber-600); --warning-bg:var(--amber-50); --warning-border:var(--amber-200); --warning-text:var(--amber-700);
+    --success:var(--green-600); --success-bg:var(--green-50); --success-border:var(--green-200); --success-text:var(--green-700);
+    --danger:var(--red-600); --danger-bg:var(--red-50); --danger-border:var(--red-200); --danger-text:var(--red-700);
+    --info:var(--blue-600); --info-bg:var(--blue-50); --info-border:var(--blue-200); --info-text:var(--blue-700);
+    --neutral-status:var(--neutral-600); --neutral-status-bg:var(--neutral-100); --neutral-status-border:var(--neutral-200); --neutral-status-text:var(--neutral-800);
+    --overlay-backdrop:rgba(22,22,26,.45);
+    --shadow-sm:0 1px 2px rgba(22,22,26,.06); --shadow-overlay:0 12px 32px rgba(22,22,26,.18);
+    --radius-sm:4px; --radius-md:8px; --radius-lg:12px; --radius-full:1000px;
+    --header-h:50px; --subnav-h:44px; --sidebar-w:242px;
+    --font-brand:'Poppins',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    --font-mono:'JetBrains Mono','Courier New',monospace;
+  }
+
+  /* ============ Type scale ============ */
+  .type-h5 { font-family:var(--font-brand); font-size:18px; line-height:28px; font-weight:600; }
+  .type-h6 { font-family:var(--font-brand); font-size:16px; line-height:24px; font-weight:600; }
+  .type-body { font-family:var(--font-brand); font-size:14px; line-height:20px; font-weight:400; }
+  .type-body-sm { font-family:var(--font-brand); font-size:12px; line-height:16px; font-weight:400; }
+  .type-caption { font-family:var(--font-brand); font-size:12px; line-height:16px; font-weight:600; letter-spacing:.2px; }
+  .tabular-nums { font-variant-numeric:tabular-nums; }
+  .scrollbar-hide::-webkit-scrollbar { display:none; }
+  .mono { font-family:var(--font-mono); }
+
+  * { box-sizing:border-box; margin:0; padding:0; }
+  body { font-family:var(--font-brand); font-size:14px; line-height:20px; background:var(--surface); color:var(--text); }
+  button, input, select { font-family:var(--font-brand); }
+
+  /* ── Top Bar (ported verbatim from usdt-checkout-prototype.html for nav-chrome consistency) ── */
   .topbar {
-    height: 48px; background: #001529; display: flex; align-items: center;
-    padding: 0 20px; gap: 16px; position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+    height:var(--header-h); background:#07364a; display:flex; align-items:center; color:#fff;
+    padding:0 20px; gap:30px; box-shadow:0 1px 0 rgba(255,255,255,.1) inset;
+    position:fixed; top:0; left:0; right:0; z-index:100; font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
   }
-  .topbar .logo { color: #fff; font-size: 15px; font-weight: 600; letter-spacing: .5px; }
-  .topbar .logo span { color: #1890ff; }
-  .topbar .breadcrumb { color: #8c8c8c; font-size: 12px; margin-left: auto; }
-  .topbar .breadcrumb a { color: #595959; text-decoration: none; }
-  .topbar .avatar { width: 30px; height: 30px; border-radius: 50%; background: #1890ff;
-    color: #fff; display: flex; align-items: center; justify-content: center; font-size: 12px; margin-left: 12px; }
+  .brand { font-size:25px; letter-spacing:.6px; font-weight:800; display:flex; align-items:center; gap:6px; white-space:nowrap; }
+  .brand-mark { width:23px; height:23px; border:3px solid #fff; border-radius:50%; display:inline-grid; place-items:center; font-size:10px; }
+  .brand small { font-size:8px; letter-spacing:0; display:block; margin-top:-5px; font-weight:500; }
+  .topnav { height:100%; display:flex; gap:27px; align-items:center; }
+  .topnav a { height:100%; display:flex; align-items:center; color:#d6e4e8; text-decoration:none; font-size:12px; font-weight:600; border-bottom:3px solid transparent; }
+  .topnav a.active { color:#43bbb9; border-bottom-color:#43bbb9; }
+  .notify { margin-left:auto; font-size:18px; position:relative; }
+  .notify:after { content:'3'; position:absolute; right:-9px; top:-6px; border:2px solid #07364a; background:#ed524c; width:15px; height:15px; border-radius:50%; font-size:9px; display:grid; place-items:center; }
 
-  /* ── Sidebar ── */
-  .sidebar {
-    width: 200px; position: fixed; top: 48px; left: 0; bottom: 0;
-    background: #001529; overflow-y: auto; z-index: 95;
+  /* ── Second-level nav: horizontal bar under the top bar (Home's sections) ── */
+  .subnav {
+    height:var(--subnav-h); background:#fff; border-bottom:1px solid #e3e8ea;
+    display:flex; align-items:center; gap:28px; padding:0 24px;
+    position:fixed; top:var(--header-h); left:0; right:0; z-index:99;
+    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
   }
-  .menu-group { padding: 8px 0; }
-  .menu-group-title { color: #5a6a7e; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; padding: 8px 16px 4px; }
-  .menu-item { display: flex; align-items: center; gap: 8px; padding: 9px 16px; color: #a6adb4; cursor: pointer; font-size: 13px; }
-  .menu-item:hover { background: rgba(255,255,255,.06); color: #e8e8e8; }
-  .menu-item.active { background: #1890ff; color: #fff; }
-  .menu-item .icon { font-size: 14px; width: 16px; text-align: center; }
+  .subnav a { height:100%; display:flex; align-items:center; color:#5f6c75; text-decoration:none; font-size:13px; font-weight:600; border-bottom:2px solid transparent; }
+  .subnav a.active { color:#168f92; border-bottom-color:#43bbb9; }
+
+  /* ── Sidebar: third-level items under the active subnav section ── */
+  .sidebar {
+    width:var(--sidebar-w); position:fixed; top:calc(var(--header-h) + var(--subnav-h)); left:0; bottom:0;
+    background:#fff; border-right:1px solid #edf0f2; overflow-y:auto; z-index:95; padding:14px 0;
+    font-family:'Inter',ui-sans-serif,system-ui,sans-serif;
+  }
+  .side-group { border-bottom:1px solid #edf0f2; padding:0 0 9px; margin-bottom:8px; }
+  .side-link { display:block; padding:10px 27px; color:#89939c; text-decoration:none; font-size:12px; }
+  .side-link.child { padding-left:42px; }
+  .side-link.active { color:#2eaaa9; background:#e7f7f6; font-weight:700; border-left:3px solid #43bbb9; padding-left:39px; }
 
   /* ── Main ── */
-  .main { margin-left: 200px; margin-top: 48px; padding: 20px 24px; }
-  .page-title { font-size: 18px; font-weight: 600; margin-bottom: 4px; }
-  .page-sub { color: #8c8c8c; font-size: 12px; margin-bottom: 18px; }
+  .main { margin-left:var(--sidebar-w); margin-top:calc(var(--header-h) + var(--subnav-h)); padding:24px 40px 40px; }
+  .crumb { color:#8d969e; font-size:12px; margin-bottom:14px; font-family:'Inter',ui-sans-serif,system-ui,sans-serif; }
+  .crumb b { color:#606a73; }
+  .page-title { font-size:22px; line-height:30px; font-weight:600; margin-bottom:4px; color:var(--text); }
+  .page-sub { color:var(--muted); font-size:12px; line-height:16px; margin-bottom:20px; }
 
-  /* ── Filter Bar ── */
+  /* ── Filter Bar (container-card) ── */
   .filter-bar {
-    background: #fff; border: 1px solid #e8e8e8; border-radius: 6px;
-    padding: 14px 16px; margin-bottom: 16px; display: flex; flex-wrap: wrap; gap: 12px 16px; align-items: flex-end;
+    background:var(--surface-overlay); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-sm);
+    padding:16px; margin-bottom:16px; display:flex; flex-wrap:wrap; gap:12px 16px; align-items:flex-end;
   }
-  .f-item { display: flex; flex-direction: column; gap: 4px; }
-  .f-item label { font-size: 11px; color: #8c8c8c; font-weight: 500; }
+  .f-item { display:flex; flex-direction:column; gap:6px; }
+  .f-item label { font-size:12px; line-height:16px; color:var(--muted); font-weight:600; }
   .f-item input[type=text], .f-item input[type=date], .f-item select {
-    height: 30px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 8px; font-size: 12px; outline: none; background: #fff; color: #1a1a2e;
+    height:40px; border:1px solid var(--border); border-radius:var(--radius-sm); padding:0 12px; font-size:14px;
+    outline:none; background:var(--fill); color:var(--text); transition:border-color .15s,background-color .15s;
   }
-  .f-item input:focus, .f-item select:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
-  .f-item.wide input { width: 190px; }
-  .f-range { display: flex; align-items: center; gap: 6px; }
-  .f-range span { color: #bfbfbf; font-size: 12px; }
+  .f-item input:focus, .f-item select:focus { border-color:var(--accent); background:var(--surface-overlay); }
+  .f-item.wide input { width:190px; }
+  .f-range { display:flex; align-items:center; gap:8px; }
+  .f-range span { color:var(--disabled); font-size:12px; }
 
-  /* status multi-select dropdown */
-  .ms-wrap { position: relative; }
+  /* status multi-select dropdown (form-dropdown) */
+  .ms-wrap { position:relative; }
   .ms-box {
-    min-width: 210px; height: 30px; border: 1px solid #d9d9d9; border-radius: 4px;
-    padding: 0 8px; font-size: 12px; display: flex; align-items: center; justify-content: space-between;
-    cursor: pointer; background: #fff; gap: 6px;
+    min-width:220px; height:40px; border:1px solid var(--border); border-radius:var(--radius-sm);
+    padding:0 12px; font-size:14px; display:flex; align-items:center; justify-content:space-between;
+    cursor:pointer; background:var(--fill); gap:8px; transition:border-color .15s;
   }
-  .ms-box:hover { border-color: #1890ff; }
-  .ms-box .ms-text { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #1a1a2e; }
-  .ms-box .ms-arrow { color: #bfbfbf; font-size: 10px; flex-shrink:0; }
+  .ms-box:hover { border-color:var(--accent); }
+  .ms-box .ms-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text); }
+  .ms-box .ms-arrow { color:var(--subtle); display:flex; flex-shrink:0; }
+  .ms-box .ms-arrow svg { width:16px; height:16px; }
   .ms-panel {
-    display: none; position: absolute; top: 34px; left: 0; z-index: 50;
-    background: #fff; border: 1px solid #e8e8e8; border-radius: 6px; box-shadow: 0 4px 16px rgba(0,0,0,.1);
-    padding: 8px 0; min-width: 230px;
+    display:none; position:absolute; top:44px; left:0; z-index:50;
+    background:var(--surface-overlay); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-overlay);
+    padding:8px; min-width:240px;
   }
-  .ms-panel.open { display: block; }
-  .ms-opt { display: flex; align-items: center; gap: 8px; padding: 6px 14px; cursor: pointer; font-size: 12.5px; }
-  .ms-opt:hover { background: #f5f5f5; }
-  .ms-opt input { cursor: pointer; }
+  .ms-panel.open { display:block; }
+  .ms-opt { display:flex; align-items:center; gap:8px; padding:8px; border-radius:var(--radius-sm); cursor:pointer; font-size:13px; }
+  .ms-opt:hover { background:var(--item-hover); }
+  .ms-opt input { cursor:pointer; accent-color:var(--accent); width:14px; height:14px; }
 
-  .btn { height: 30px; padding: 0 14px; border-radius: 4px; font-size: 12.5px; cursor: pointer; border: 1px solid; font-weight: 500; transition: all .15s; }
-  .btn-default { background: #fff; border-color: #d9d9d9; color: #595959; }
-  .btn-default:hover { border-color: #1890ff; color: #1890ff; }
-  .btn-primary { background: #1890ff; border-color: #1890ff; color: #fff; }
-  .btn-primary:hover { background: #40a9ff; border-color: #40a9ff; }
-  .btn-link { background: none; border: none; color: #1890ff; cursor: pointer; font-size: 12.5px; padding: 0; }
-  .btn-link:hover { text-decoration: underline; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
-  .btn.sm { height: 26px; padding: 0 10px; font-size: 12px; }
+  /* ── Buttons ── */
+  .btn {
+    display:inline-flex; align-items:center; justify-content:center; gap:6px;
+    height:40px; padding:0 16px; border-radius:var(--radius-sm); font-size:14px; font-weight:600;
+    cursor:pointer; border:1px solid transparent; transition:background-color .15s,border-color .15s,color .15s;
+    white-space:nowrap;
+  }
+  .btn-secondary { background:transparent; border-color:var(--border-strong); color:var(--text); }
+  .btn-secondary:hover { background:var(--item-hover); border-color:var(--accent); color:var(--accent-text); }
+  .btn-primary { background:var(--accent); color:var(--on-primary); }
+  .btn-primary:hover { background:var(--accent-hover); }
+  .btn:disabled { opacity:.5; cursor:not-allowed; }
+  .btn.xs { height:32px; padding:0 12px; font-size:12.5px; }
 
-  /* ── Table ── */
-  .table-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 6px; overflow: hidden; }
-  table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
-  th, td { text-align: left; padding: 10px 14px; border-bottom: 1px solid #f0f0f0; white-space: nowrap; }
-  th { background: #fafafa; color: #595959; font-weight: 600; font-size: 12px; }
-  tbody tr:last-child td { border-bottom: none; }
-  tbody tr:hover { background: #fafcff; }
-  .code-link { color: #1890ff; cursor: pointer; font-weight: 600; }
-  .code-link:hover { text-decoration: underline; }
-  .num { font-variant-numeric: tabular-nums; }
-  .table-foot { padding: 10px 14px; display: flex; justify-content: space-between; align-items: center; color: #8c8c8c; font-size: 12px; }
-  .empty-row td { text-align: center; color: #bfbfbf; padding: 40px; }
+  /* ── Table (cell) ── */
+  .table-card { background:var(--surface-overlay); border:1px solid var(--border); border-radius:var(--radius-md); box-shadow:var(--shadow-sm); overflow:hidden; }
+  .table-wrap { overflow-x:auto; }
+  .table-wrap::-webkit-scrollbar { height:10px; }
+  .table-wrap::-webkit-scrollbar-track { background:var(--fill); }
+  .table-wrap::-webkit-scrollbar-thumb { background:var(--border-strong); border-radius:var(--radius-full); }
+  .table-wrap::-webkit-scrollbar-thumb:hover { background:var(--subtle); }
+  table { width:100%; min-width:1080px; border-collapse:collapse; font-size:13.5px; }
+  th, td { text-align:left; padding:12px 16px; border-bottom:1px solid var(--border); white-space:nowrap; }
+  th { background:var(--fill); color:var(--subtle); font-weight:600; font-size:11.5px; text-transform:uppercase; letter-spacing:.3px; }
+  tbody tr:last-child td { border-bottom:none; }
+  tbody tr:hover { background:var(--item-hover); }
+  .code-link { color:var(--accent-text); cursor:pointer; font-weight:600; font-family:var(--font-mono); }
+  .code-link:hover { text-decoration:underline; }
+  .num { font-variant-numeric:tabular-nums; font-weight:600; }
+  .table-foot { padding:12px 16px; display:flex; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; }
+  .empty-row td { text-align:center; color:var(--disabled); padding:40px; }
 
-  /* status pills */
-  .pill { display: inline-block; padding: 2px 10px; border-radius: 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
-  .pill.PENDING_REFUND_REQUEST { background: #fff7e6; color: #fa8c16; border: 1px solid #ffd591; }
-  .pill.PROCESSING { background: #e6f7ff; color: #1890ff; border: 1px solid #91d5ff; }
-  .pill.PENDING_CHECKER_REVIEW { background: #f9f0ff; color: #722ed1; border: 1px solid #d3adf7; }
-  .pill.PENDING_SAFEHERON_REVIEW { background: #e6fffb; color: #13a8a8; border: 1px solid #87e8de; }
+  /* ── Status badges ── */
+  .badge {
+    display:inline-flex; align-items:center; height:24px; padding:0 10px; border-radius:var(--radius-full);
+    font-size:12px; font-weight:600; letter-spacing:.2px; white-space:nowrap; border:1px solid transparent;
+  }
+  .badge.PENDING_REFUND_REQUEST { background:var(--warning-bg); border-color:var(--warning-border); color:var(--warning-text); }
+  .badge.PROCESSING { background:var(--info-bg); border-color:var(--info-border); color:var(--info-text); }
+  .badge.PENDING_CHECKER_REVIEW { background:var(--accent-subtle); border-color:var(--accent-subtle); color:var(--accent-text); }
+  .badge.PENDING_SAFEHERON_REVIEW { background:var(--neutral-status-bg); border-color:var(--neutral-status-border); color:var(--neutral-status-text); }
 
-  /* ── Drawer ── */
-  .mask { position: fixed; inset: 0; background: rgba(0,0,0,.45); opacity: 0; pointer-events: none; transition: .2s; z-index: 200; }
-  .mask.on { opacity: 1; pointer-events: auto; }
+  /* ── Drawer (sheets-drawer / side) ── */
+  .mask { position:fixed; inset:0; background:var(--overlay-backdrop); opacity:0; pointer-events:none; transition:.2s; z-index:200; }
+  .mask.on { opacity:1; pointer-events:auto; }
   .drawer {
-    position: fixed; top: 0; right: 0; height: 100%; width: 560px; max-width: 94vw;
-    background: #f0f2f5; box-shadow: -8px 0 30px rgba(0,0,0,.15); transform: translateX(100%);
-    transition: .25s; z-index: 210; display: flex; flex-direction: column;
+    position:fixed; top:0; right:0; height:100%; width:640px; max-width:94vw;
+    background:var(--surface); box-shadow:var(--shadow-overlay); transform:translateX(100%);
+    transition:.25s; z-index:210; display:flex; flex-direction:column;
   }
-  .drawer.on { transform: translateX(0); }
-  .dhead { background: #001529; color: #fff; padding: 16px 22px; position: relative; }
-  .dhead h2 { font-size: 16px; margin-bottom: 3px; }
-  .dhead .did { opacity: .75; font-size: 12px; }
-  .dhead .dclose { position: absolute; top: 14px; right: 18px; color: #fff; font-size: 22px; cursor: pointer; line-height: 1; border: none; background: none; opacity: .8; }
-  .dhead .dclose:hover { opacity: 1; }
-  .dhead .pill { margin-top: 8px; }
-  .dbody { flex: 1; overflow: auto; padding: 18px 22px; }
+  .drawer.on { transform:translateX(0); }
+  .dhead {
+    flex-shrink:0; background:var(--surface-overlay); border-bottom:1px solid var(--border);
+    padding:16px 24px; position:relative; display:flex; flex-direction:column; justify-content:center; gap:2px;
+  }
+  .dhead h2 { font-size:16px; font-weight:600; color:var(--text); }
+  .dhead .did { color:var(--muted); font-size:12px; font-family:var(--font-mono); }
+  .dhead .dclose {
+    position:absolute; top:12px; right:16px; width:36px; height:36px; border-radius:var(--radius-md);
+    color:var(--subtle); cursor:pointer; border:none; background:none; display:flex; align-items:center; justify-content:center;
+    transition:background-color .12s,color .12s;
+  }
+  .dhead .dclose:hover { background:var(--item-hover); color:var(--text); }
+  .dhead .dclose svg { width:18px; height:18px; }
+  .dhead .badge { margin-top:6px; }
+  .dbody { flex:1; overflow:auto; padding:24px; }
 
-  .sec-card { background: #fff; border: 1px solid #e8e8e8; border-radius: 6px; padding: 14px 16px; margin-bottom: 14px; }
-  .sec-title { font-size: 13px; font-weight: 700; color: #1a1a2e; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
-  .sec-title::after { content: ''; flex: 1; height: 1px; background: #f0f0f0; }
+  .sec-card { background:var(--surface-overlay); border:1px solid var(--border); border-radius:var(--radius-md); padding:16px; margin-bottom:16px; }
+  .sec-title { font-size:14px; font-weight:700; color:var(--text); margin-bottom:12px; display:flex; align-items:center; gap:8px; }
+  .sec-title::after { content:''; flex:1; height:1px; background:var(--border); }
 
-  .kv-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; }
-  .kv { display: flex; flex-direction: column; gap: 4px; }
-  .kv.full { grid-column: 1 / -1; }
-  .kv label { font-size: 11px; color: #8c8c8c; font-weight: 500; text-transform: uppercase; letter-spacing: .3px; }
-  .kv .val { font-size: 13px; font-weight: 600; color: #1a1a2e; word-break: break-all; }
-  .kv .val.muted { color: #bfbfbf; font-weight: 400; }
+  .kv-grid { display:grid; grid-template-columns:1fr 1fr; gap:12px 16px; }
+  .kv { display:flex; flex-direction:column; gap:6px; }
+  .kv.full { grid-column:1 / -1; }
+  .kv label { font-size:11px; line-height:16px; color:var(--subtle); font-weight:600; text-transform:uppercase; letter-spacing:.3px; }
+  .kv .val { font-size:14px; font-weight:600; color:var(--text); word-break:break-all; }
+  .kv .val.mono { font-family:var(--font-mono); }
+  .kv .val.muted { color:var(--disabled); font-weight:400; }
   .kv input[type=text], .kv input[type=number] {
-    height: 30px; border: 1px solid #d9d9d9; border-radius: 4px; padding: 0 8px; font-size: 13px; outline: none;
+    height:40px; border:1px solid var(--border); border-radius:var(--radius-sm); padding:0 12px; font-size:14px;
+    outline:none; background:var(--fill); color:var(--text); transition:border-color .15s,background-color .15s;
   }
-  .kv input:focus { border-color: #1890ff; box-shadow: 0 0 0 2px rgba(24,144,255,.1); }
-  .kv .hint { font-size: 11px; color: #bfbfbf; }
+  .kv input:focus { border-color:var(--accent); background:var(--surface-overlay); }
+  .kv .hint { font-size:12px; color:var(--muted); }
 
-  .dfoot { padding: 12px 22px; background: #fff; border-top: 1px solid #e8e8e8; display: flex; justify-content: flex-end; gap: 8px; }
+  .dfoot { padding:16px 24px; background:var(--surface-overlay); border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:12px; flex-shrink:0; }
 
-  /* toast */
+  /* ── Toast (container-card) ── */
   .toast {
-    position: fixed; bottom: 32px; left: 50%; transform: translateX(-50%) translateY(20px);
-    background: #1a1a2e; color: #fff; padding: 10px 20px; border-radius: 6px;
-    font-size: 13px; z-index: 300; opacity: 0; transition: all .25s; white-space: nowrap; pointer-events: none;
+    position:fixed; bottom:32px; left:50%; transform:translateX(-50%) translateY(20px);
+    background:var(--surface-overlay); color:var(--text); border:1px solid var(--border); box-shadow:var(--shadow-overlay);
+    padding:12px 16px; border-radius:var(--radius-md); display:flex; align-items:center; gap:10px;
+    font-size:14px; font-weight:500; z-index:300; opacity:0; transition:all .25s; white-space:nowrap; pointer-events:none;
   }
-  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
-  .toast.ok { background: #237804; }
+  .toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+  .toast .dot { width:8px; height:8px; border-radius:50%; background:var(--subtle); flex-shrink:0; }
+  .toast.ok .dot { background:var(--success); }
 </style>
 </head>
 <body>
 
 <!-- Top Bar -->
-<div class="topbar">
-  <div class="logo">CAMP <span>Admin</span></div>
-  <div class="breadcrumb"><a href="#">Home</a> › Checkout Refund</div>
-  <div class="avatar">OP</div>
-</div>
+<header class="topbar">
+  <div class="brand"><span class="brand-mark">A</span>AMP <small>Admin</small></div>
+  <nav class="topnav">
+    <a class="active" href="#">Home</a><a href="#">CRM</a><a href="#">Ledger</a><a href="#">Trading</a><a href="#">Wealth</a><a href="#">Loan</a><a href="#">Service Management</a><a href="#">System</a>
+  </nav>
+  <div class="notify">♟</div>
+</header>
 
-<!-- Sidebar -->
-<div class="sidebar">
-  <div class="menu-group">
-    <div class="menu-group-title">Home</div>
-    <div class="menu-item active"><span class="icon">💵</span> Checkout Refund</div>
-    <div class="menu-item"><span class="icon">📄</span> Checkout Orders</div>
-    <div class="menu-item"><span class="icon">📊</span> Settlement Statement</div>
-    <div class="menu-item"><span class="icon">⚙️</span> PBS Configuration</div>
+<!-- Subnav (L2, horizontal, Home's sections) -->
+<nav class="subnav">
+  <a class="active" href="#">Checkout</a>
+</nav>
+
+<!-- Sidebar (L3, Checkout's items) -->
+<aside class="sidebar">
+  <div class="side-group">
+    <a class="side-link child" href="#">Orders</a>
+    <a class="side-link child active" href="#">Refund</a>
   </div>
-</div>
+</aside>
 
 <!-- Main -->
 <div class="main">
+  <div class="crumb"><b>Home</b> &nbsp;/&nbsp; Checkout &nbsp;/&nbsp; Refund</div>
   <div class="page-title">Checkout Refund</div>
   <div class="page-sub">Demo · 点击 Code 查看退款详情；根据状态展示 Refund / Review 操作</div>
 
@@ -204,7 +297,7 @@
       <div class="ms-wrap">
         <div class="ms-box" id="msBox" onclick="toggleStatusPanel()">
           <span class="ms-text" id="msText">—</span>
-          <span class="ms-arrow">▾</span>
+          <span class="ms-arrow"><i data-lucide="chevron-down"></i></span>
         </div>
         <div class="ms-panel" id="msPanel"></div>
       </div>
@@ -213,23 +306,25 @@
       <label>&nbsp;</label>
       <div style="display:flex; gap:8px;">
         <button class="btn btn-primary" onclick="applyFilters()">Search</button>
-        <button class="btn btn-default" onclick="resetFilters()">Reset</button>
+        <button class="btn btn-secondary" onclick="resetFilters()">Reset</button>
       </div>
     </div>
   </div>
 
   <!-- Table -->
   <div class="table-card">
+    <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th>Code</th><th>Original Transaction ID</th><th>Refund Type</th>
+          <th>Code</th><th>Original Transaction ID</th><th>Parent Name</th><th>Refund Type</th>
           <th>Refund Amount</th><th>Network</th><th>Payment Amount</th>
           <th>Last Update</th><th>Status</th><th style="width:120px">Actions</th>
         </tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
+    </div>
     <div class="table-foot">
       <span id="rowCount">0 records</span>
       <span>Page 1 of 1</span>
@@ -241,7 +336,7 @@
 <div class="mask" id="mask"></div>
 <aside class="drawer" id="drawer">
   <div class="dhead">
-    <button class="dclose" id="dclose">&times;</button>
+    <button class="dclose" id="dclose"><i data-lucide="x"></i></button>
     <h2 id="dTitle">Refund Detail</h2>
     <div class="did">Code: <span id="dCode">—</span></div>
     <div id="dPill"></div>
@@ -250,7 +345,7 @@
   <div class="dfoot" id="dfoot"></div>
 </aside>
 
-<div class="toast" id="toast"></div>
+<div class="toast" id="toast"><span class="dot"></span><span id="toastMsg"></span></div>
 
 <script>
 /* ============ Constants ============ */
@@ -265,43 +360,43 @@ const STATUS_ORDER = ["PENDING_REFUND_REQUEST","PROCESSING","PENDING_CHECKER_REV
 
 /* ============ Mock data ============ */
 let REFUNDS = [
-  { code:"REF_20260701_001", origId:"CKO_900001", type:"REFUND", amount:"—", currency:"—", network:"ETH", updated:"2026-07-01 10:22",
+  { code:"REF_20260701_001", origId:"CKO_900001", parentName:"Acme Holdings", type:"REFUND", amount:"—", currency:"—", network:"ETH", updated:"2026-07-01 10:22",
     status:"PENDING_REFUND_REQUEST",
     refundId:"REF_20260701_001", conversionId:"", sourceAmount:"20.00 USD", quotation:"", refundAmount:"", refundAsset:"USDT", refundAddress:"",
     participantCode:"PSP_A_20240301", payerName:"John Doe", paymentAmount:"105.50 USDT", serviceFee:"0.50", serviceFeeCurrency:"USD",
     refundEmail:"john.doe@example.com" },
 
-  { code:"REF_20260702_002", origId:"CKO_900002", type:"VOID", amount:"12.00", currency:"USDT", network:"TRC20", updated:"2026-07-02 09:05",
+  { code:"REF_20260702_002", origId:"CKO_900002", parentName:"Acme Holdings", type:"VOID", amount:"12.00", currency:"USDT", network:"TRC20", updated:"2026-07-02 09:05",
     status:"PROCESSING",
     refundId:"REF_20260702_002", conversionId:"", sourceAmount:"12.00 USD", quotation:"1 USD = 1.001 USDT", refundAmount:"12.01 USDT", refundAsset:"USDT", refundAddress:"TXy8...9kLQ",
     participantCode:"PSP_A_20240301", payerName:"Acme Ltd.", paymentAmount:"520.00 USDT", serviceFee:"1.20", serviceFeeCurrency:"USD",
     refundEmail:"billing@acme.example" },
 
-  { code:"REF_20260702_003", origId:"CKO_900003", type:"REFUND", amount:"80.00", currency:"USDC", network:"ETH", updated:"2026-07-02 15:40",
+  { code:"REF_20260702_003", origId:"CKO_900003", parentName:"Nimbus Group", type:"REFUND", amount:"80.00", currency:"USDC", network:"ETH", updated:"2026-07-02 15:40",
     status:"PENDING_CHECKER_REVIEW",
     refundId:"REF_20260702_003", conversionId:"CNV_20260702_003", sourceAmount:"80.00 USD", quotation:"1 USD = 1.000 USDC", refundAmount:"80.00 USDC", refundAsset:"USDC", refundAddress:"0x9F2b...4aC1",
     participantCode:"PSP_B_20240512", payerName:"Alice Wong", paymentAmount:"92.00 USDT", serviceFee:"0.80", serviceFeeCurrency:"USD",
     refundEmail:"alice.wong@example.com" },
 
-  { code:"REF_20260703_004", origId:"CKO_900004", type:"RISK_REFUND", amount:"12.00", currency:"USDT", network:"BSC", updated:"2026-07-03 11:12",
+  { code:"REF_20260703_004", origId:"CKO_900004", parentName:"Nimbus Group", type:"RISK_REFUND", amount:"12.00", currency:"USDT", network:"BSC", updated:"2026-07-03 11:12",
     status:"PENDING_SAFEHERON_REVIEW",
     refundId:"REF_20260703_004", conversionId:"CNV_20260703_004", sourceAmount:"12.00 USD", quotation:"1 USD = 1.000 USDT", refundAmount:"12.00 USDT", refundAsset:"USDT", refundAddress:"0x1aB3...77Fe",
     participantCode:"PSP_B_20240512", payerName:"Bob Chen", paymentAmount:"60.00 USDT", serviceFee:"0.00", serviceFeeCurrency:"USD",
     refundEmail:"bob.chen@example.com" },
 
-  { code:"REF_20260705_005", origId:"CKO_900005", type:"REFUND", amount:"—", currency:"—", network:"TRC20", updated:"2026-07-05 08:30",
+  { code:"REF_20260705_005", origId:"CKO_900005", parentName:"Acme Holdings", type:"REFUND", amount:"—", currency:"—", network:"TRC20", updated:"2026-07-05 08:30",
     status:"PENDING_REFUND_REQUEST",
     refundId:"REF_20260705_005", conversionId:"", sourceAmount:"200.00 USD", quotation:"", refundAmount:"", refundAsset:"USDT", refundAddress:"",
     participantCode:"PSP_A_20240301", payerName:"Global Trading Co.", paymentAmount:"1050.00 USDT", serviceFee:"2.50", serviceFeeCurrency:"USD",
     refundEmail:"finance@globaltrading.example" },
 
-  { code:"REF_20260706_006", origId:"CKO_900006", type:"VOID", amount:"3.50", currency:"USDC", network:"TRC20", updated:"2026-07-06 17:02",
+  { code:"REF_20260706_006", origId:"CKO_900006", parentName:"Orbit Commerce", type:"VOID", amount:"3.50", currency:"USDC", network:"TRC20", updated:"2026-07-06 17:02",
     status:"PENDING_CHECKER_REVIEW",
     refundId:"REF_20260706_006", conversionId:"CNV_20260706_006", sourceAmount:"3.50 USD", quotation:"1 USD = 1.000 USDC", refundAmount:"3.50 USDC", refundAsset:"USDC", refundAddress:"TQq2...81Zx",
     participantCode:"PSP_C_20250110", payerName:"Nova Retail", paymentAmount:"23.50 USDT", serviceFee:"0.30", serviceFeeCurrency:"USD",
     refundEmail:"ops@novaretail.example" },
 
-  { code:"REF_20260707_007", origId:"CKO_900007", type:"REFUND", amount:"5.00", currency:"USDT", network:"ETH", updated:"2026-07-07 13:45",
+  { code:"REF_20260707_007", origId:"CKO_900007", parentName:"Orbit Commerce", type:"REFUND", amount:"5.00", currency:"USDT", network:"ETH", updated:"2026-07-07 13:45",
     status:"PENDING_SAFEHERON_REVIEW",
     refundId:"REF_20260707_007", conversionId:"CNV_20260707_007", sourceAmount:"5.00 USD", quotation:"1 USD = 1.000 USDT", refundAmount:"5.00 USDT", refundAsset:"USDT", refundAddress:"0x77Ca...02Bd",
     participantCode:"PSP_C_20250110", payerName:"Chen Wei", paymentAmount:"18.00 USDT", serviceFee:"0.10", serviceFeeCurrency:"USD",
@@ -312,9 +407,10 @@ let curCode = null;
 
 /* ============ Helpers ============ */
 const $ = s => document.querySelector(s);
-function toast(msg, kind){ const t=$(".toast"); t.textContent=msg; t.className="toast show "+(kind||""); setTimeout(()=>t.className="toast",1900); }
-function pill(s){ return `<span class="pill ${s}">${STATUS_LABEL[s]||s}</span>`; }
-function val(v){ return (v===""||v==null) ? `<span class="val muted">—</span>` : `<span class="val">${v}</span>`; }
+function icons(){ if(window.lucide) lucide.createIcons(); }
+function toast(msg, kind){ const t=$(".toast"); $("#toastMsg").textContent=msg; t.className="toast show "+(kind||""); setTimeout(()=>t.className="toast",1900); }
+function badge(s){ return `<span class="badge ${s}">${STATUS_LABEL[s]||s}</span>`; }
+function val(v, mono){ return (v===""||v==null) ? `<span class="val muted">—</span>` : `<span class="val${mono?" mono":""}">${v}</span>`; }
 
 /* ============ Status multi-select ============ */
 let statusSel = new Set(["PENDING_CHECKER_REVIEW","PENDING_SAFEHERON_REVIEW"]);
@@ -368,22 +464,24 @@ const ACTION_LABEL = { PENDING_REFUND_REQUEST:"Refund", PENDING_CHECKER_REVIEW:"
 function renderRows(){
   const rows = REFUNDS.filter(matchesFilters);
   $("#rowCount").textContent = `${rows.length} record${rows.length===1?"":"s"}`;
-  if(!rows.length){ $("#rows").innerHTML = `<tr class="empty-row"><td colspan="9">No refunds match the current filters</td></tr>`; return; }
+  if(!rows.length){ $("#rows").innerHTML = `<tr class="empty-row"><td colspan="10">No refunds match the current filters</td></tr>`; return; }
   $("#rows").innerHTML = rows.map(r => {
     const action = ACTION_LABEL[r.status];
     const refundAmount = (r.status === "PENDING_REFUND_REQUEST" || r.amount === "—") ? "—" : `${r.amount} ${r.currency}`;
     return `<tr>
       <td><span class="code-link" onclick="openDetail('${r.code}')">${r.code}</span></td>
-      <td>${r.origId}</td>
+      <td class="mono">${r.origId}</td>
+      <td>${r.parentName}</td>
       <td>${TYPE_LABEL[r.type]}</td>
       <td class="num">${refundAmount}</td>
       <td>${r.network}</td>
       <td class="num">${r.paymentAmount}</td>
       <td>${r.updated}</td>
-      <td>${pill(r.status)}</td>
-      <td>${ action ? `<button class="btn sm btn-default" onclick="openDetail('${r.code}')">${action}</button>` : `<span style="color:#d9d9d9">—</span>` }</td>
+      <td>${badge(r.status)}</td>
+      <td>${ action ? `<button class="btn xs btn-secondary" onclick="openDetail('${r.code}')">${action}</button>` : `<span style="color:var(--disabled)">—</span>` }</td>
     </tr>`;
   }).join("");
+  icons();
 }
 
 /* ============ Drawer ============ */
@@ -391,7 +489,7 @@ function openDetail(code){
   curCode = code;
   const r = REFUNDS.find(x => x.code === code);
   $("#dCode").textContent = r.code;
-  $("#dPill").innerHTML = pill(r.status);
+  $("#dPill").innerHTML = badge(r.status);
   renderDetail(r);
   $("#mask").classList.add("on");
   $("#drawer").classList.add("on");
@@ -407,8 +505,8 @@ function renderDetail(r){
     <div class="sec-card">
       <div class="sec-title">Refund Info</div>
       <div class="kv-grid">
-        <div class="kv"><label>Refund ID</label>${val(r.refundId)}</div>
-        <div class="kv"><label>Conversion ID</label>${val(r.conversionId)}</div>
+        <div class="kv"><label>Refund ID</label>${val(r.refundId, true)}</div>
+        <div class="kv"><label>Conversion ID</label>${val(r.conversionId, true)}</div>
         <div class="kv"><label>Source Amount</label>${val(r.sourceAmount)}</div>
         <div class="kv"><label>Quotation</label>${val(r.quotation)}</div>
         <div class="kv"><label>Refund Amount</label>${val(r.refundAmount)}</div>
@@ -418,7 +516,7 @@ function renderDetail(r){
           <label>Refund Address</label>
           ${ editable
             ? `<input type="text" id="inAddr" placeholder="Enter refund address" value="${r.refundAddress||""}">`
-            : val(r.refundAddress) }
+            : val(r.refundAddress, true) }
         </div>
       </div>
     </div>
@@ -426,7 +524,7 @@ function renderDetail(r){
     <div class="sec-card">
       <div class="sec-title">Payer Details</div>
       <div class="kv-grid">
-        <div class="kv"><label>Participant Code</label>${val(r.participantCode)}</div>
+        <div class="kv"><label>Participant Code</label>${val(r.participantCode, true)}</div>
         <div class="kv"><label>Name</label>${val(r.payerName)}</div>
         <div class="kv"><label>Payment Amount</label>${val(r.paymentAmount)}</div>
         <div class="kv"><label>Net Amount</label>${val(r.sourceAmount)}</div>
@@ -447,13 +545,14 @@ function renderDetail(r){
     </div>
   `;
 
-  let footHtml = `<button class="btn btn-default" onclick="closeDetail()">Close</button>`;
+  let footHtml = `<button class="btn btn-secondary" onclick="closeDetail()">Close</button>`;
   if(r.status === "PENDING_REFUND_REQUEST"){
     footHtml += `<button class="btn btn-primary" onclick="submitRefund()">Submit</button>`;
   } else if(r.status === "PENDING_CHECKER_REVIEW"){
     footHtml += `<button class="btn btn-primary" onclick="approveRefund()">Approve</button>`;
   }
   $("#dfoot").innerHTML = footHtml;
+  icons();
 }
 
 /* ============ Actions ============ */
@@ -497,6 +596,7 @@ function approveRefund(){
 /* ============ init ============ */
 renderStatusPanel();
 renderRows();
+icons();
 </script>
 </body>
 </html>
