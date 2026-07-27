@@ -317,7 +317,7 @@
     <table>
       <thead>
         <tr>
-          <th>Code</th><th>Original Transaction ID</th><th>Parent Name</th><th>Refund Type</th>
+          <th>Code</th><th>Original Transaction ID</th><th>Partner Participant Code</th><th>Refund Type</th>
           <th>Refund Amount</th><th>Network</th><th>Payment Amount</th>
           <th>Last Update</th><th>Status</th><th style="width:120px">Actions</th>
         </tr>
@@ -360,43 +360,43 @@ const STATUS_ORDER = ["PENDING_REFUND_REQUEST","PROCESSING","PENDING_CHECKER_REV
 
 /* ============ Mock data ============ */
 let REFUNDS = [
-  { code:"REF_20260701_001", origId:"CKO_900001", parentName:"Acme Holdings", type:"REFUND", amount:"—", currency:"—", network:"ETH", updated:"2026-07-01 10:22",
+  { code:"REF_20260701_001", origId:"CKO_900001", partnerParticipantCode:"PP_ACME_001", partnerName:"Acme Holdings", type:"REFUND", amount:"—", currency:"—", network:"ETH", updated:"2026-07-01 10:22",
     status:"PENDING_REFUND_REQUEST",
     refundId:"REF_20260701_001", conversionId:"", sourceAmount:"20.00 USD", quotation:"", refundAmount:"", refundAsset:"USDT", refundAddress:"",
     participantCode:"PSP_A_20240301", payerName:"John Doe", paymentAmount:"105.50 USDT", serviceFee:"0.50", serviceFeeCurrency:"USD",
     refundEmail:"john.doe@example.com" },
 
-  { code:"REF_20260702_002", origId:"CKO_900002", parentName:"Acme Holdings", type:"VOID", amount:"12.00", currency:"USDT", network:"TRC20", updated:"2026-07-02 09:05",
+  { code:"REF_20260702_002", origId:"CKO_900002", partnerParticipantCode:"PP_ACME_001", partnerName:"Acme Holdings", type:"VOID", amount:"12.00", currency:"USDT", network:"TRC20", updated:"2026-07-02 09:05",
     status:"PROCESSING",
     refundId:"REF_20260702_002", conversionId:"", sourceAmount:"12.00 USD", quotation:"1 USD = 1.001 USDT", refundAmount:"12.01 USDT", refundAsset:"USDT", refundAddress:"TXy8...9kLQ",
     participantCode:"PSP_A_20240301", payerName:"Acme Ltd.", paymentAmount:"520.00 USDT", serviceFee:"1.20", serviceFeeCurrency:"USD",
     refundEmail:"billing@acme.example" },
 
-  { code:"REF_20260702_003", origId:"CKO_900003", parentName:"Nimbus Group", type:"REFUND", amount:"80.00", currency:"USDC", network:"ETH", updated:"2026-07-02 15:40",
+  { code:"REF_20260702_003", origId:"CKO_900003", partnerParticipantCode:"PP_NIMBUS_002", partnerName:"Nimbus Group", type:"REFUND", amount:"80.00", currency:"USDC", network:"ETH", updated:"2026-07-02 15:40",
     status:"PENDING_CHECKER_REVIEW",
     refundId:"REF_20260702_003", conversionId:"CNV_20260702_003", sourceAmount:"80.00 USD", quotation:"1 USD = 1.000 USDC", refundAmount:"80.00 USDC", refundAsset:"USDC", refundAddress:"0x9F2b...4aC1",
     participantCode:"PSP_B_20240512", payerName:"Alice Wong", paymentAmount:"92.00 USDT", serviceFee:"0.80", serviceFeeCurrency:"USD",
     refundEmail:"alice.wong@example.com" },
 
-  { code:"REF_20260703_004", origId:"CKO_900004", parentName:"Nimbus Group", type:"RISK_REFUND", amount:"12.00", currency:"USDT", network:"BSC", updated:"2026-07-03 11:12",
+  { code:"REF_20260703_004", origId:"CKO_900004", partnerParticipantCode:"PP_NIMBUS_002", partnerName:"Nimbus Group", type:"RISK_REFUND", amount:"12.00", currency:"USDT", network:"BSC", updated:"2026-07-03 11:12",
     status:"PENDING_SAFEHERON_REVIEW",
     refundId:"REF_20260703_004", conversionId:"CNV_20260703_004", sourceAmount:"12.00 USD", quotation:"1 USD = 1.000 USDT", refundAmount:"12.00 USDT", refundAsset:"USDT", refundAddress:"0x1aB3...77Fe",
     participantCode:"PSP_B_20240512", payerName:"Bob Chen", paymentAmount:"60.00 USDT", serviceFee:"0.00", serviceFeeCurrency:"USD",
     refundEmail:"bob.chen@example.com" },
 
-  { code:"REF_20260705_005", origId:"CKO_900005", parentName:"Acme Holdings", type:"REFUND", amount:"—", currency:"—", network:"TRC20", updated:"2026-07-05 08:30",
+  { code:"REF_20260705_005", origId:"CKO_900005", partnerParticipantCode:"PP_ACME_001", partnerName:"Acme Holdings", type:"REFUND", amount:"—", currency:"—", network:"TRC20", updated:"2026-07-05 08:30",
     status:"PENDING_REFUND_REQUEST",
     refundId:"REF_20260705_005", conversionId:"", sourceAmount:"200.00 USD", quotation:"", refundAmount:"", refundAsset:"USDT", refundAddress:"",
     participantCode:"PSP_A_20240301", payerName:"Global Trading Co.", paymentAmount:"1050.00 USDT", serviceFee:"2.50", serviceFeeCurrency:"USD",
     refundEmail:"finance@globaltrading.example" },
 
-  { code:"REF_20260706_006", origId:"CKO_900006", parentName:"Orbit Commerce", type:"VOID", amount:"3.50", currency:"USDC", network:"TRC20", updated:"2026-07-06 17:02",
+  { code:"REF_20260706_006", origId:"CKO_900006", partnerParticipantCode:"PP_ORBIT_003", partnerName:"Orbit Commerce", type:"VOID", amount:"3.50", currency:"USDC", network:"TRC20", updated:"2026-07-06 17:02",
     status:"PENDING_CHECKER_REVIEW",
     refundId:"REF_20260706_006", conversionId:"CNV_20260706_006", sourceAmount:"3.50 USD", quotation:"1 USD = 1.000 USDC", refundAmount:"3.50 USDC", refundAsset:"USDC", refundAddress:"TQq2...81Zx",
     participantCode:"PSP_C_20250110", payerName:"Nova Retail", paymentAmount:"23.50 USDT", serviceFee:"0.30", serviceFeeCurrency:"USD",
     refundEmail:"ops@novaretail.example" },
 
-  { code:"REF_20260707_007", origId:"CKO_900007", parentName:"Orbit Commerce", type:"REFUND", amount:"5.00", currency:"USDT", network:"ETH", updated:"2026-07-07 13:45",
+  { code:"REF_20260707_007", origId:"CKO_900007", partnerParticipantCode:"PP_ORBIT_003", partnerName:"Orbit Commerce", type:"REFUND", amount:"5.00", currency:"USDT", network:"ETH", updated:"2026-07-07 13:45",
     status:"PENDING_SAFEHERON_REVIEW",
     refundId:"REF_20260707_007", conversionId:"CNV_20260707_007", sourceAmount:"5.00 USD", quotation:"1 USD = 1.000 USDT", refundAmount:"5.00 USDT", refundAsset:"USDT", refundAddress:"0x77Ca...02Bd",
     participantCode:"PSP_C_20250110", payerName:"Chen Wei", paymentAmount:"18.00 USDT", serviceFee:"0.10", serviceFeeCurrency:"USD",
@@ -471,7 +471,7 @@ function renderRows(){
     return `<tr>
       <td><span class="code-link" onclick="openDetail('${r.code}')">${r.code}</span></td>
       <td class="mono">${r.origId}</td>
-      <td>${r.parentName}</td>
+      <td class="mono">${r.partnerParticipantCode}</td>
       <td>${TYPE_LABEL[r.type]}</td>
       <td class="num">${refundAmount}</td>
       <td>${r.network}</td>
@@ -524,6 +524,8 @@ function renderDetail(r){
     <div class="sec-card">
       <div class="sec-title">Payer Details</div>
       <div class="kv-grid">
+        <div class="kv"><label>Partner Participant Code</label>${val(r.partnerParticipantCode, true)}</div>
+        <div class="kv"><label>Partner Name</label>${val(r.partnerName)}</div>
         <div class="kv"><label>Participant Code</label>${val(r.participantCode, true)}</div>
         <div class="kv"><label>Name</label>${val(r.payerName)}</div>
         <div class="kv"><label>Payment Amount</label>${val(r.paymentAmount)}</div>
