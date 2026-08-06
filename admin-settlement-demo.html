@@ -1,0 +1,732 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>MetaComp Admin · Settlement Management</title>
+<!--
+  Built per skills/admin-ops-console/SKILL.md.
+  Decision points chosen for this page:
+    1. Page shell        → fixed topbar + fixed sidebar + margin-offset .main (default)
+    2. Detail surface     → centered backdrop modal (Upload / Confirm Settlement / Detail)
+    3. Filter mechanism   → inline filter bar only (merchant / date range / status)
+    4. State model         → DATA array (`STATEMENTS`) + render() — no direct DOM mutation
+    Skin                  → templates/skin-amp-navy.css (AMP navy/teal / Inter)
+  Business logic: Settlement list + auto-withdrawal Confirm Settlement flow, per
+  01-prd/statement-sftp/2026-08-06-settlement-auto-withdrawal-frontend-prd-v1.0.md.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== skin-amp-navy.css (see skills/admin-ops-console/templates/) ===== */
+  :root{
+    --bg:#f6f8fa; --surface:#ffffff; --surface-overlay:#ffffff; --fill:#f1f6f6;
+    --fill-hover:#ffffff; --item-hover:#f8fcfc; --surface-glass:var(--navy);
+    --surface-disabled:#e5eaed;
+    --border:#e1e6e9; --border-strong:#ccd5da;
+    --text:#26313a; --muted:#77828d; --subtle:#8b969e; --disabled:#a7b2b8; --on-primary:#ffffff;
+    --accent:#168f92; --accent-hover:#43bbb9; --accent-subtle:#eaf7fa; --accent-text:#147f84;
+    --teal:#43bbb9; --navy:#022D41; --navy-2:#062d3d;
+    --success:#20b34a; --success-bg:#eaf8ef; --success-border:#c8ecd4; --success-text:#219e45;
+    --danger:#e5534b; --danger-bg:#fff1ef; --danger-border:#f5c9c4; --danger-text:#d94c45;
+    --warning:#e89c27; --warning-bg:#fff7e9; --warning-border:#f7dfae; --warning-text:#c67b11;
+    --info:#3f82d2; --info-bg:#eaf7fa; --info-border:#c9e6ea; --info-text:#1c859d;
+    --overlay-backdrop:rgba(13,34,43,.35);
+    --shadow-sm:0 2px 7px rgba(16,40,52,.03);
+    --shadow:0 2px 8px rgba(16,40,52,.06);
+    --shadow-lg:0 12px 32px rgba(16,40,52,.09);
+    --shadow-overlay:0 18px 50px rgba(10,29,38,.24);
+    --header-h:50px; --sidebar-w:242px;
+    --radius-sm:4px; --radius-md:5px; --radius-lg:7px; --radius-full:999px;
+    --topbar-text:#ffffff; --topbar-muted:#a9c1c7;
+  }
+  /* ===== skin end ===== */
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Inter',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:14px;color:var(--text);background:var(--bg);line-height:1.5}
+  button{font-family:inherit;cursor:pointer}
+  .mono{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.5px}
+
+  .topbar{height:var(--header-h);background:var(--surface-glass);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 22px;
+    position:fixed;top:0;left:0;right:0;z-index:100}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;color:var(--topbar-text)}
+  .brand .dot{width:22px;height:22px;border-radius:var(--radius-full);background:var(--accent);
+    display:inline-block;box-shadow:var(--shadow)}
+  .topbar .crumb{margin-left:18px;color:var(--topbar-muted);font-size:13px}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:12px;color:var(--topbar-muted);font-size:13px}
+  .avatar{width:32px;height:32px;border-radius:var(--radius-full);background:var(--accent);color:var(--on-primary);
+    display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600}
+
+  .sidebar{width:var(--sidebar-w);position:fixed;top:var(--header-h);left:0;bottom:0;
+    background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:14px 12px}
+  .nav-group{color:var(--subtle);font-size:11px;letter-spacing:.5px;text-transform:uppercase;padding:14px 10px 6px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);
+    color:var(--muted);font-size:14px;cursor:pointer;margin-bottom:2px}
+  .nav-item:hover{background:var(--item-hover);color:var(--text)}
+  .nav-item.active{background:var(--accent-subtle);color:var(--accent-text);font-weight:600}
+  .nav-item .ic{width:18px;text-align:center;opacity:.85}
+
+  .main{margin-left:var(--sidebar-w);margin-top:var(--header-h);padding:26px 30px 60px}
+  .page-title{font-size:22px;font-weight:700;margin-bottom:4px}
+  .page-sub{color:var(--muted);font-size:13px;margin-bottom:20px}
+
+  .filterbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;background:var(--surface-overlay);
+    border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:18px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;color:var(--muted);font-weight:500}
+  .field .ctrl,select,input[type=date]{height:36px;min-width:180px;padding:0 10px;border:1px solid var(--border-strong);
+    border-radius:var(--radius-sm);background:var(--fill-hover);color:var(--text);font-size:13.5px;font-family:inherit}
+  select:focus,input:focus{outline:2px solid var(--accent-subtle);border-color:var(--accent)}
+  .date-range{display:flex;align-items:center;gap:6px}
+  .date-range input{min-width:140px}
+  .filter-actions{display:flex;gap:10px;margin-left:auto}
+
+  .btn{height:36px;padding:0 16px;border-radius:var(--radius-full);border:1px solid transparent;font-size:13.5px;
+    font-weight:500;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .btn-primary{background:var(--accent);color:var(--on-primary)}
+  .btn-primary:hover{background:var(--accent-hover)}
+  .btn-ghost{background:transparent;color:var(--accent-text);border-color:var(--border-strong)}
+  .btn-ghost:hover{background:var(--item-hover)}
+  .btn-warning{background:var(--warning-bg);color:var(--warning-text);border-color:var(--warning-border)}
+  .btn-warning:hover{background:var(--warning-border)}
+  .btn-sm{height:30px;padding:0 12px;font-size:12.5px}
+  .btn[disabled]{background:var(--surface-disabled);color:var(--disabled);cursor:not-allowed;border-color:transparent}
+  .btn-link{background:none;border:none;color:var(--accent-text);font-size:12.5px;padding:4px 6px;border-radius:var(--radius-sm)}
+  .btn-link:hover{background:var(--item-hover)}
+  .icon-btn{background:none;border:1px solid var(--border-strong);border-radius:var(--radius-sm);width:32px;height:30px;
+    color:var(--accent-text);font-size:15px;cursor:pointer;display:inline-flex;align-items:center;justify-content:center}
+  .icon-btn:hover{background:var(--item-hover);border-color:var(--accent)}
+
+  .table-wrap{background:var(--surface-overlay);border:1px solid var(--border);border-radius:var(--radius-md);
+    overflow:visible;box-shadow:var(--shadow-sm)}
+  table{width:100%;border-collapse:collapse;font-size:13.5px}
+  thead th{background:var(--fill);color:var(--muted);font-weight:600;text-align:left;padding:11px 14px;
+    border-bottom:1px solid var(--border);white-space:nowrap;font-size:12.5px}
+  thead th.sortable{cursor:pointer;user-select:none}
+  thead th.sortable:hover{color:var(--text)}
+  tbody td{padding:12px 14px;border-bottom:1px solid var(--border);vertical-align:middle}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:var(--item-hover)}
+  .cell-id{display:flex;align-items:center;gap:6px}
+  .sid-link{color:var(--accent-text);cursor:pointer;text-decoration:none;font-size:12.5px}
+  .sid-link:hover{text-decoration:underline}
+  .copy{cursor:pointer;color:var(--subtle);font-size:12px;border:none;background:none}
+  .copy:hover{color:var(--accent-text)}
+  .warn-ic{color:var(--warning-text);cursor:help;font-size:13px;margin-left:5px}
+  .actions{display:flex;gap:8px;align-items:center}
+
+  .badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--radius-full);
+    font-size:12px;font-weight:600;border:1px solid}
+  .badge .bdot{width:6px;height:6px;border-radius:50%}
+  .b-gen{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border)}
+  .b-gen .bdot{background:var(--info)}
+  .b-genfail{background:var(--danger-bg);color:var(--danger-text);border-color:var(--danger-border)}
+  .b-genfail .bdot{background:var(--danger)}
+  .b-pending{background:var(--warning-bg);color:var(--warning-text);border-color:var(--warning-border)}
+  .b-pending .bdot{background:var(--warning)}
+  .b-uploading{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border)}
+  .b-uploading .bdot{background:var(--info)}
+  .b-uploaded{background:var(--accent-subtle);color:var(--accent-text);border-color:var(--border-strong)}
+  .b-uploaded .bdot{background:var(--teal)}
+  .b-settled{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border)}
+  .b-settled .bdot{background:var(--success)}
+  .b-review{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border)}
+  .b-review .bdot{background:var(--info)}
+  .b-setfail{background:var(--danger-bg);color:var(--danger-text);border-color:var(--danger-border)}
+  .b-setfail .bdot{background:var(--danger)}
+  .b-notifyfail{background:var(--warning-bg);color:var(--warning-text);border-color:var(--warning-border)}
+  .b-notifyfail .bdot{background:var(--warning)}
+  .spin{display:inline-block;width:11px;height:11px;border:2px solid currentColor;border-right-color:transparent;
+    border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+
+  .state{padding:60px 20px;text-align:center;color:var(--muted)}
+  .state .big{font-size:34px;margin-bottom:12px;opacity:.5}
+  .skel{height:46px;border-bottom:1px solid var(--border);background:linear-gradient(90deg,var(--fill) 25%,var(--fill-hover) 37%,var(--fill) 63%);
+    background-size:400% 100%;animation:sk 1.2s ease infinite}
+  @keyframes sk{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+  .pager{display:flex;align-items:center;justify-content:flex-end;gap:10px;padding:14px 4px;color:var(--muted);font-size:13px}
+  .pager .pg{display:flex;gap:4px}
+  .pager .pg button{min-width:30px;height:30px;border:1px solid var(--border-strong);background:var(--fill-hover);
+    border-radius:var(--radius-sm);color:var(--text)}
+  .pager .pg button.active{background:var(--accent);color:var(--on-primary);border-color:var(--accent)}
+
+  .backdrop{position:fixed;inset:0;background:var(--overlay-backdrop);display:none;align-items:center;justify-content:center;z-index:200}
+  .backdrop.open{display:flex}
+  .modal{background:var(--surface-overlay);border-radius:var(--radius-lg);box-shadow:var(--shadow-overlay);
+    width:540px;max-width:92vw;max-height:90vh;overflow:auto;padding:24px}
+  .modal h3{font-size:18px;font-weight:700;margin-bottom:12px}
+  .modal h4.sec{font-size:13px;color:var(--muted);font-weight:600;margin:6px 0 8px}
+  .modal .lead{color:var(--text);font-size:14px;background:var(--accent-subtle);border:1px solid var(--border-strong);
+    border-radius:var(--radius-md);padding:12px 14px;margin-bottom:16px;line-height:1.55}
+  .modal .lead .hl{color:var(--accent-text);font-weight:700}
+  .info-block{border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden;margin-bottom:16px}
+  .info-block .ir{display:flex;justify-content:space-between;padding:9px 14px;border-bottom:1px solid var(--border);font-size:13px;gap:16px}
+  .info-block .ir:last-child{border-bottom:none}
+  .info-block .ir .k{color:var(--muted);white-space:nowrap}
+  .info-block .ir .v{color:var(--text);font-weight:500;text-align:right;max-width:330px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .modal .foot{display:flex;justify-content:flex-end;gap:10px;margin-top:8px}
+  .modal .note{font-size:12px;color:var(--subtle);margin-top:10px}
+  .alert{border-radius:var(--radius-md);padding:10px 12px;font-size:13px;margin-bottom:14px;display:none}
+  .alert.err{background:var(--danger-bg);color:var(--danger-text);border:1px solid var(--danger-border);display:block}
+
+  .modal-section{margin-bottom:18px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+  .modal-section:last-of-type{border-bottom:none;padding-bottom:0}
+  .modal-section h4.sec-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:10px;
+    display:flex;align-items:center;gap:6px}
+  .modal-section h4.sec-title .num{width:18px;height:18px;border-radius:50%;background:var(--accent-subtle);
+    color:var(--accent-text);font-size:11px;display:inline-flex;align-items:center;justify-content:center;font-weight:700}
+  .ro-text{height:36px;display:flex;align-items:center;padding:0 10px;border:1px solid var(--border);
+    border-radius:var(--radius-sm);background:var(--fill);color:var(--muted);font-size:13.5px}
+  .risk-note{font-size:12px;color:var(--warning-text);margin-top:5px;display:flex;gap:5px;align-items:flex-start}
+  .detail-cols{display:flex;gap:12px}
+  .detail-cols .info-block{flex:1;margin-bottom:0}
+  .select-loading{color:var(--subtle);font-size:12px;margin-top:4px;display:none}
+  .select-loading.on{display:block}
+  select[disabled]{background:var(--surface-disabled);color:var(--disabled);cursor:not-allowed}
+
+  table.ops{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:16px;border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+  table.ops th{text-align:left;background:var(--fill);color:var(--muted);padding:8px 10px;font-weight:600}
+  table.ops td{padding:8px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+  table.ops tr:last-child td{border-bottom:none}
+  .who-sys{color:var(--subtle)}
+
+  .req{color:var(--danger)}
+
+  .toast-wrap{position:fixed;top:72px;right:24px;z-index:300;display:flex;flex-direction:column;gap:10px}
+  .toast{background:var(--surface-overlay);border:1px solid var(--success-border);border-left:4px solid var(--success);
+    border-radius:var(--radius-md);box-shadow:var(--shadow-lg);padding:12px 16px;font-size:13.5px;min-width:260px;animation:slidein .25s ease}
+  .toast.err{border-color:var(--danger-border);border-left-color:var(--danger)}
+  @keyframes slidein{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+  .demo-tools{margin-left:14px;display:flex;gap:8px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span> MetaComp</div>
+  <div class="crumb">Admin · Settlement / Settlement</div>
+  <div class="right"><span>Ops · eddie.hui@metacomp.com</span><div class="avatar">EH</div></div>
+</div>
+
+<aside class="sidebar">
+  <div class="nav-group">Acquiring</div>
+  <div class="nav-item"><span class="ic">▣</span> Checkout Orders</div>
+  <div class="nav-item"><span class="ic">↺</span> Refunds</div>
+  <div class="nav-group">Settlement</div>
+  <div class="nav-item active"><span class="ic">▤</span> Settlement</div>
+  <div class="nav-item"><span class="ic">$</span> MDR Config</div>
+  <div class="nav-group">System</div>
+  <div class="nav-item"><span class="ic">⚙</span> Merchants</div>
+</aside>
+
+<main class="main">
+  <div class="page-title">Settlement Management</div>
+  <div class="page-sub">Review the daily auto-generated settlement statements, verify the data, upload them to the customer's SFTP folder, and confirm settlement.</div>
+
+  <div class="filterbar">
+    <div class="field"><label>Merchant</label><select id="f-merchant" class="ctrl"></select></div>
+    <div class="field"><label>Statement date</label>
+      <div class="date-range"><input type="date" id="f-date-from" /><span style="color:var(--subtle)">to</span><input type="date" id="f-date-to" /></div>
+    </div>
+    <div class="field"><label>Status</label>
+      <select id="f-status" class="ctrl">
+        <option value="ALL">All</option>
+        <option value="CREATING">Creating</option>
+        <option value="PENDING_UPLOAD">Pending Upload</option>
+        <option value="PENDING_SETTLEMENT">Pending Settlement</option>
+        <option value="PENDING_WITHDRAWAL_REVIEW">Pending Withdrawal Review</option>
+        <option value="SETTLED">Settled</option>
+        <option value="SETTLEMENT_FAILED">Settlement Failed</option>
+        <option value="SETTLEMENT_NOTIFICATION_FAILED">Notification Failed</option>
+        <option value="RECONCILE_FAILED">Reconcile Failed</option>
+      </select>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-ghost" onclick="resetFilters()">Reset</button>
+      <button class="btn btn-primary" onclick="applyFilters()">Search</button>
+    </div>
+  </div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:240px">SettlementId</th>
+          <th style="width:190px">Merchant Name</th>
+          <th style="width:110px">Merchant ID</th>
+          <th class="sortable" style="width:140px" onclick="toggleSort()">Statement Date <span id="sortarrow">▼</span></th>
+          <th style="width:130px">Settlement Amount</th>
+          <th style="width:140px">Status</th>
+          <th style="width:170px">withdrawalId</th>
+          <th style="width:100px">Settlement</th>
+          <th style="width:100px">Statement</th>
+          <th style="width:110px">Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="emptystate" class="state" style="display:none">
+      <div class="big">▤</div>
+      <div>No statements match the current filters.</div>
+      <div style="margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="resetFilters()">Reset filters</button></div>
+    </div>
+  </div>
+
+  <div class="pager">
+    <span id="pgtotal">0 items</span>
+    <div class="pg"><button class="active">1</button></div>
+    <div class="demo-tools"><button class="btn-link" onclick="simulateLoading()">⟳ Simulate loading</button></div>
+  </div>
+</main>
+
+<!-- Upload confirm modal -->
+<div class="backdrop" id="uploadModal">
+  <div class="modal">
+    <h3>Upload Settlement to SFTP</h3>
+    <div class="lead">Please confirm the settlement is accurate, then upload it to the server for the customer to download.</div>
+    <div class="info-block" id="up-info"></div>
+    <div class="alert" id="up-alert"></div>
+    <div class="foot">
+      <button class="btn btn-ghost" onclick="closeModal('uploadModal')">Cancel</button>
+      <button class="btn btn-primary" id="up-confirm" onclick="confirmUpload()">Confirm Upload</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settle modal -->
+<div class="backdrop" id="settleModal">
+  <div class="modal" style="width:680px">
+    <h3>Confirm Settlement</h3>
+
+    <div class="modal-section">
+      <h4 class="sec-title"><span class="num">1</span> Settlement Information</h4>
+      <div class="info-block" id="set-info"></div>
+    </div>
+
+    <div class="modal-section">
+      <h4 class="sec-title"><span class="num">2</span> Withdrawal Information</h4>
+      <div class="field" style="margin-bottom:12px"><label>Source Label</label>
+        <select id="set-source" class="ctrl" style="width:100%" onchange="onSourceChange()"></select></div>
+      <div class="field" style="margin-bottom:12px"><label>Destination Label <span class="req">*</span></label>
+        <select id="set-dest" class="ctrl" style="width:100%" onchange="onDestChange()"></select>
+        <div class="select-loading" id="dest-loading">Looking up merchant bank account…</div>
+        <div class="select-loading" id="dest-empty" style="color:var(--danger-text)">No withdrawal account found for this merchant — please add one in CRM first.</div>
+      </div>
+      <div class="field"><label>Fee Charge Type</label><div class="ro-text">OUR (borne by source)</div></div>
+    </div>
+
+    <div class="modal-section">
+      <h4 class="sec-title"><span class="num">3</span> Summary</h4>
+      <div class="info-block" style="margin-bottom:10px">
+        <div class="ir"><span class="k">Withdrawal Amount</span><span class="v mono" id="sum-wamt">—</span></div>
+        <div class="ir"><span class="k">Fee Amount</span><span class="v mono" id="sum-fee">—</span></div>
+        <div class="ir"><span class="k">Amount Received</span><span class="v mono" id="sum-recv">—</span></div>
+      </div>
+      <div class="risk-note">⚠ Please confirm the Settlement Amount is correct — an incorrect amount may result in a loss of funds.</div>
+      <div class="detail-cols" style="margin-top:14px">
+        <div>
+          <h4 class="sec" style="margin-top:0">Payer Detail</h4>
+          <div class="info-block" id="payer-detail"></div>
+        </div>
+        <div>
+          <h4 class="sec" style="margin-top:0">Payee Detail</h4>
+          <div class="info-block" id="payee-detail"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert" id="set-alert"></div>
+    <div class="note">Once submitted, this cannot be undone from this screen.</div>
+    <div class="foot">
+      <button class="btn btn-ghost" onclick="closeModal('settleModal')">Cancel</button>
+      <button class="btn btn-primary" id="set-confirm" onclick="confirmSettle()" disabled>Confirm Settlement</button>
+    </div>
+  </div>
+</div>
+
+<!-- Statement detail modal -->
+<div class="backdrop" id="detailModal">
+  <div class="modal" style="width:660px">
+    <h3>Statement Detail</h3>
+    <div class="info-block" id="dt-info"></div>
+    <h4 class="sec">Operation history</h4>
+    <div id="dt-ops"></div>
+    <div class="foot"><button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button></div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+const CURRENT_USER='eddie.hui@metacomp.com';
+const MERCHANTS={'A0101913':'Acme Pay Pte Ltd','A0103103':'Skyline Commerce','A0102050':'Nova Digital Ltd'};
+const fileNameFor=(m,sid,d)=>{const dd=d.replace(/-/g,'');return{settlement:`${m}-settlement-${sid}-${dd}.csv`,statement:`${m}-statement-${dd}.csv`};};
+
+// MCE internal settlement accounts (Source Label options)
+const SOURCE_ACCOUNTS=[
+  {code:'11020018283',label:'GLDB Bank (Omnibus)',name:'METACOMP PTE. LTD.',account:'11020018283',bank:'GLDB Bank',swift:'GLDTSGSGXXX',country:'SG'},
+  {code:'2000905812',label:'CIMB Bank (Omnibus)',name:'METACOMP PTE. LTD. - USD CLIENT',account:'2000905812',bank:'CIMB Bank',swift:'CIBBSGSGXXX',country:'SG'},
+];
+// CRM-registered merchant withdrawal accounts (Destination Label options), keyed by participantCode
+const MERCHANT_BANK_ACCOUNTS={
+  'A0101913':[{label:'Acme Pay Pte Ltd (Alibaba)',name:'ACME PAY PTE LTD',account:'6421009981',bank:'OCBC Bank',swift:'OCBCSGSG',country:'SG'}],
+  'A0103103':[{label:'Skyline Commerce Ltd',name:'SKYLINE COMMERCE LTD',account:'7788001234',bank:'HSBC',swift:'HSBCSGSG',country:'SG'}],
+  'A0102050':[], // no withdrawal account registered — used to demo the empty-destination guard
+};
+function lookupFee(amount){
+  // Mock fee-config lookup (fixed chargeType=OUR): 0.2% of amount, clamped [5, 50]
+  const fee=Math.min(50,Math.max(5,Math.round(amount*0.002*100)/100));
+  return {fee,received:amount}; // OUR: merchant receives the full withdrawal amount, fee borne by source
+}
+
+let STATEMENTS=[
+ {id:'30a73fe147644d83aa1068dd76a213d0',m:'A0101913',date:'2026-06-10',status:'UPLOADED',sa:363.55,
+  ops:[{t:'2026-06-11 00:32',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:10',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-11 08:11',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-11 08:11',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-11 09:41',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'}]},
+ {id:'b41c9aa2f0e84c10bb22e7d5c901aa31',m:'A0101913',date:'2026-06-09',status:'SETTLED',wid:'WD2026060911130001',sa:912.30,settledDate:'2026-06-10',
+  ops:[{t:'2026-06-10 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:05',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-10 08:06',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-10 08:06',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-10 09:24',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-10 10:05',action:'Settled (bank transfer) · withdrawalId WD2026060911130001',who:'eddie.hui@metacomp.com',k:'settle'}]},
+ {id:'7f2e10c4d9b3489aa0d61f3e2c884512',m:'A0103103',date:'2026-06-10',status:'FILE_GENERATED',sa:1540.00,
+  ops:[{t:'2026-06-11 00:33',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:20',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-11 08:21',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-11 08:21',action:'Settlement file generated',who:'system',k:'system'}]},
+ {id:'c5d8b1e6a2f74e93b8c40a7d915ef022',m:'A0103103',date:'2026-06-09',status:'RECONCILE_FAILED',reconcileError:'Reconciliation mismatch: pending settlement amount ≠ net settlement amount — please investigate',
+  ops:[{t:'2026-06-10 00:33',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:14',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-10 08:15',action:'Reconciliation failed: amount mismatch',who:'system',k:'system'}]},
+ {id:'9a0f7c33e1d2470bb9aa55c8d7e10433',m:'A0102050',date:'2026-06-10',status:'STATEMENT_DOWNLOADED',
+  ops:[{t:'2026-06-11 00:34',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:30',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'}]},
+ {id:'e6b2d40af8c14a7e8d33b91076c5f944',m:'A0102050',date:'2026-06-09',status:'SETTLED',wid:'WD2026060911360002',sa:1075.00,settledDate:'2026-06-10',
+  ops:[{t:'2026-06-10 00:34',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:12',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-10 08:13',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-10 08:13',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-10 09:50',action:'Uploaded to SFTP',who:'ops.lee@metacomp.com',k:'upload'},{t:'2026-06-10 11:20',action:'Settled (bank transfer) · withdrawalId WD2026060911360002',who:'ops.lee@metacomp.com',k:'settle'}]},
+ {id:'18cc7e09b5a34d62a1f0e8d4c3b29055',m:'A0101913',date:'2026-06-08',status:'STATEMENT_GENERATED',
+  ops:[{t:'2026-06-09 00:32',action:'Statement generated',who:'system',k:'system'}]},
+ {id:'2d9af16b4c7e48f1a6b0c2e93d815166',m:'A0103103',date:'2026-06-08',status:'PENDING',ops:[]},
+ {id:'4b6a80f5c1e94a2d9e77b0a3c8f61277',m:'A0101913',date:'2026-06-07',status:'PENDING_WITHDRAWAL_REVIEW',sa:588.20,source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)',
+  ops:[{t:'2026-06-08 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-08 08:02',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-08 08:03',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-08 08:03',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-08 09:15',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-08 10:02',action:'Withdrawal submitted (Source: GLDB → Destination: Acme Pay Pte Ltd (Alibaba))',who:'eddie.hui@metacomp.com',k:'withdrawal'}]},
+ {id:'5f13c204a9e64b0f8c22d9e0a71b6388',m:'A0103103',date:'2026-06-06',status:'SETTLEMENT_FAILED',sa:2140.00,source:'GLDB Bank (Omnibus)',destination:'Skyline Commerce Ltd',
+  ops:[{t:'2026-06-07 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-07 08:11',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-07 08:12',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-07 08:12',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-07 09:30',action:'Uploaded to SFTP',who:'ops.lee@metacomp.com',k:'upload'},{t:'2026-06-07 10:00',action:'Withdrawal submitted (Source: GLDB → Destination: Skyline Commerce Ltd)',who:'ops.lee@metacomp.com',k:'withdrawal'},{t:'2026-06-07 10:24',action:'Withdrawal rejected by B10',who:'system',k:'withdrawal'}]},
+ {id:'6a2d91e0b8f7401a9d55c3b0e4a89f10',m:'A0101913',date:'2026-06-05',status:'SETTLEMENT_NOTIFICATION_FAILED',sa:749.80,wid:'WD2026060611130007',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)',
+  ops:[{t:'2026-06-06 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-06 08:00',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-06 08:01',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-06 08:01',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-06 09:10',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-06 09:50',action:'Withdrawal submitted (Source: GLDB → Destination: Acme Pay Pte Ltd (Alibaba))',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-06 10:20',action:'Withdrawal completed · withdrawalId WD2026060611130007',who:'system',k:'withdrawal'},{t:'2026-06-06 10:21',action:'Settlement notification email failed to send',who:'system',k:'notify'}]},
+];
+
+const BACKEND_TO_FRONTEND={
+  PENDING:'CREATING',STATEMENT_GENERATED:'CREATING',STATEMENT_DOWNLOADED:'CREATING',RECONCILE_SUCCESS:'CREATING',
+  FILE_GENERATED:'PENDING_UPLOAD',
+  UPLOADED:'PENDING_SETTLEMENT',
+  PENDING_WITHDRAWAL_REVIEW:'PENDING_WITHDRAWAL_REVIEW',
+  SETTLED:'SETTLED',
+  SETTLEMENT_FAILED:'SETTLEMENT_FAILED',
+  SETTLEMENT_NOTIFICATION_FAILED:'SETTLEMENT_NOTIFICATION_FAILED',
+  RECONCILE_FAILED:'RECONCILE_FAILED',
+};
+const STATUS_META={
+  CREATING:{label:'Creating',cls:'b-gen',loading:true},
+  PENDING_UPLOAD:{label:'Pending Upload',cls:'b-pending'},
+  PENDING_SETTLEMENT:{label:'Pending Settlement',cls:'b-uploaded'},
+  PENDING_WITHDRAWAL_REVIEW:{label:'Pending Withdrawal Review',cls:'b-review',loading:true},
+  SETTLED:{label:'Settled',cls:'b-settled'},
+  SETTLEMENT_FAILED:{label:'Settlement Failed',cls:'b-setfail'},
+  SETTLEMENT_NOTIFICATION_FAILED:{label:'Notification Failed',cls:'b-notifyfail'},
+  RECONCILE_FAILED:{label:'Reconcile Failed',cls:'b-genfail'},
+};
+const FILTER_GROUP={ALL:null,CREATING:['PENDING','STATEMENT_GENERATED','STATEMENT_DOWNLOADED','RECONCILE_SUCCESS'],PENDING_UPLOAD:['FILE_GENERATED'],PENDING_SETTLEMENT:['UPLOADED'],
+  PENDING_WITHDRAWAL_REVIEW:['PENDING_WITHDRAWAL_REVIEW'],SETTLED:['SETTLED'],SETTLEMENT_FAILED:['SETTLEMENT_FAILED'],SETTLEMENT_NOTIFICATION_FAILED:['SETTLEMENT_NOTIFICATION_FAILED'],
+  RECONCILE_FAILED:['RECONCILE_FAILED']};
+const canDownloadStatement=s=>s!=='PENDING';
+const canDownloadSettlement=s=>['FILE_GENERATED','UPLOADED','PENDING_WITHDRAWAL_REVIEW','SETTLED','SETTLEMENT_FAILED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
+const AMOUNT_VISIBLE=s=>['RECONCILE_SUCCESS','FILE_GENERATED','UPLOADED','PENDING_WITHDRAWAL_REVIEW','SETTLED','SETTLEMENT_FAILED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
+
+let sortDesc=true,curUploadId=null,curSettleId=null;
+
+function now(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
+
+function initFilters(){
+  document.getElementById('f-merchant').innerHTML='<option value="ALL">All merchants</option>'+
+    Object.entries(MERCHANTS).map(([k,v])=>`<option value="${k}">${v} (${k})</option>`).join('');
+  document.getElementById('f-date-from').value='2026-06-05';
+  document.getElementById('f-date-to').value='2026-06-10';
+}
+function getFiltered(){
+  const m=document.getElementById('f-merchant').value,from=document.getElementById('f-date-from').value,
+    to=document.getElementById('f-date-to').value,sg=document.getElementById('f-status').value;
+  let rows=STATEMENTS.filter(r=>{
+    if(m!=='ALL'&&r.m!==m)return false;
+    if(from&&r.date<from)return false;
+    if(to&&r.date>to)return false;
+    if(sg!=='ALL'&&!FILTER_GROUP[sg].includes(r.status))return false;
+    return true;
+  });
+  rows.sort((a,b)=>sortDesc?b.date.localeCompare(a.date):a.date.localeCompare(b.date));
+  return rows;
+}
+function dlCell(r,kind){
+  const ok=kind==='statement'?canDownloadStatement(r.status):canDownloadSettlement(r.status);
+  if(!ok)return '<span style="color:var(--subtle)">—</span>';
+  const t=kind==='settlement'?'Download settlement file (to client)':'Download statement file (internal reconciliation)';
+  return `<button class="icon-btn" title="${t}" onclick="downloadFile2('${r.id}','${kind}')">⬇</button>`;
+}
+function actionsHTML(r){
+  switch(BACKEND_TO_FRONTEND[r.status]){
+    case 'CREATING':return `<span style="color:var(--subtle)">—</span>`;
+    case 'PENDING_UPLOAD':return `<button class="btn btn-primary btn-sm" onclick="openUpload('${r.id}')">Upload</button>`;
+    case 'PENDING_SETTLEMENT':return `<button class="btn btn-primary btn-sm" onclick="openSettle('${r.id}')">Settle</button>`;
+    case 'PENDING_WITHDRAWAL_REVIEW':return `<span style="color:var(--subtle)">—</span>`;
+    case 'SETTLED':return `<span style="color:var(--subtle)">—</span>`;
+    case 'SETTLEMENT_FAILED':return `<button class="btn btn-warning btn-sm" onclick="openSettle('${r.id}',true)">Retry</button>`;
+    case 'SETTLEMENT_NOTIFICATION_FAILED':return `<button class="btn btn-primary btn-sm" onclick="resendNotification('${r.id}')">Resend Notification</button>`;
+    case 'RECONCILE_FAILED':return `<button class="btn btn-ghost btn-sm" onclick="recreateStatement('${r.id}')">Recreate</button><button class="btn btn-warning btn-sm" onclick="openUpload('${r.id}')">Upload</button>`;
+  }
+  return '';
+}
+function render(){
+  const tb=document.getElementById('tbody'),rows=getFiltered();
+  document.getElementById('pgtotal').innerText=`${rows.length} item${rows.length===1?'':'s'}`;
+  const empty=document.getElementById('emptystate');
+  if(rows.length===0){tb.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  tb.innerHTML=rows.map(r=>{
+    const sm=STATUS_META[BACKEND_TO_FRONTEND[r.status]],sid=r.id,shortId=sid.slice(0,8)+'…'+sid.slice(-6);
+    let badge=`<span class="badge ${sm.cls}">${sm.loading?'<span class="spin"></span>':'<span class="bdot"></span>'}${sm.label}</span>`;
+    if(r.reconcileError)badge+=`<span class="warn-ic" title="${r.reconcileError}">⚠</span>`;
+    return `<tr>
+      <td><div class="cell-id"><a class="sid-link mono" title="Click to view detail" onclick="openDetail('${sid}')">${shortId}</a>
+        <button class="copy" title="Copy" onclick="copyText('${sid}')">⧉</button></div></td>
+      <td>${MERCHANTS[r.m]}</td>
+      <td class="mono">${r.m}</td>
+      <td>${r.date}</td>
+      <td style="text-align:right">${AMOUNT_VISIBLE(r.status)&&r.sa!=null?`<span class="mono">${r.sa.toFixed(2)} USD</span>`:'<span style="color:var(--subtle)">—</span>'}</td>
+      <td>${badge}</td>
+      <td>${r.wid?`<span class="mono">${r.wid}</span>`:'<span style="color:var(--subtle)">—</span>'}</td>
+      <td>${dlCell(r,'settlement')}</td>
+      <td>${dlCell(r,'statement')}</td>
+      <td><div class="actions">${actionsHTML(r)}</div></td>
+    </tr>`;
+  }).join('');
+}
+function applyFilters(){render();}
+function resetFilters(){
+  document.getElementById('f-merchant').value='ALL';document.getElementById('f-status').value='ALL';
+  document.getElementById('f-date-from').value='2026-06-08';document.getElementById('f-date-to').value='2026-06-10';render();
+}
+function toggleSort(){sortDesc=!sortDesc;document.getElementById('sortarrow').innerText=sortDesc?'▼':'▲';render();}
+['f-merchant','f-status','f-date-from','f-date-to'].forEach(id=>document.addEventListener('change',e=>{if(e.target.id===id)render();}));
+
+function downloadFile2(id,kind){
+  const r=STATEMENTS.find(x=>x.id===id),f=fileNameFor(r.m,r.id,r.date);
+  const name=kind==='settlement'?f.settlement:f.statement;
+  toast('Download started: '+name);
+  if(kind==='statement'&&r.status==='STATEMENT_GENERATED'){
+    r.status='STATEMENT_DOWNLOADED';
+    r.ops.push({t:now(),action:'Statement downloaded',who:CURRENT_USER,k:'system'});
+    render();
+    setTimeout(()=>{
+      if(Math.random()>0.25){
+        r.status='RECONCILE_SUCCESS';
+        r.ops.push({t:now(),action:'Reconciliation succeeded',who:'system',k:'system'});
+        render();
+        setTimeout(()=>{
+          r.status='FILE_GENERATED';
+          r.ops.push({t:now(),action:'Settlement file generated',who:'system',k:'system'});
+          render();
+        },700);
+      }else{
+        r.status='RECONCILE_FAILED';
+        r.reconcileError='Reconciliation mismatch: pending settlement amount ≠ net settlement amount — please investigate';
+        r.ops.push({t:now(),action:'Reconciliation failed: amount mismatch',who:'system',k:'system'});
+        render();
+      }
+    },1200);
+  }
+}
+function recreateStatement(id){
+  const r=STATEMENTS.find(x=>x.id===id);
+  r.status='PENDING';delete r.reconcileError;
+  r.ops.push({t:now(),action:'Recreated by ops after reconciliation failure',who:CURRENT_USER,k:'recreate'});
+  render();
+  setTimeout(()=>{
+    r.status='STATEMENT_GENERATED';
+    r.ops.push({t:now(),action:'Statement generated',who:'system',k:'system'});
+    render();
+  },900);
+}
+function dlBlob(url,name){const a=document.createElement('a');a.href=url;a.download=name;a.click();toast('Download: '+name);}
+
+function infoRows(r){
+  return `<div class="ir"><span class="k">Merchant Name</span><span class="v">${MERCHANTS[r.m]}</span></div>
+    <div class="ir"><span class="k">Merchant ID</span><span class="v mono">${r.m}</span></div>
+    <div class="ir"><span class="k">SettlementId</span><span class="v mono">${r.id}</span></div>
+    <div class="ir"><span class="k">Statement Date</span><span class="v">${r.date}</span></div>`;
+}
+function openUpload(id){
+  curUploadId=id;const r=STATEMENTS.find(x=>x.id===id),f=fileNameFor(r.m,r.id,r.date);
+  document.getElementById('up-info').innerHTML=infoRows(r)+
+    `<div class="ir"><span class="k">Settlement file</span><span class="v mono">${f.settlement}</span></div>`;
+  const a=document.getElementById('up-alert');
+  if(r.status==='RECONCILE_FAILED'){a.className='alert err';a.innerHTML='<b>Reconciliation was not successful.</b> Uploading directly may result in a fund loss — please verify the settlement is accurate before proceeding.';}
+  else{a.className='alert';a.innerHTML='';}
+  const btn=document.getElementById('up-confirm');btn.disabled=false;btn.innerHTML='Confirm Upload';
+  openModal('uploadModal');
+}
+function confirmUpload(){
+  const r=STATEMENTS.find(x=>x.id===curUploadId),btn=document.getElementById('up-confirm'),forced=r.status==='RECONCILE_FAILED';
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Uploading…';
+  setTimeout(()=>{
+    const ok=Math.random()>0.12;
+    if(ok){
+      r.status='UPLOADED';if(forced)delete r.reconcileError;
+      r.ops.push({t:now(),action:forced?'Uploaded to SFTP despite reconciliation failure — risk acknowledged':'Uploaded to SFTP',who:CURRENT_USER,k:'upload'});
+      closeModal('uploadModal');toast('Settlement file uploaded to SFTP');
+    }else{
+      r.ops.push({t:now(),action:'Upload failed: SFTP write failed',who:CURRENT_USER,k:'upload'});
+      const a=document.getElementById('up-alert');a.className='alert err';a.innerText='Upload failed: SFTP write failed. Please retry.';
+      btn.disabled=false;btn.innerHTML='Confirm Upload';
+    }
+    render();
+  },1200);
+}
+function findSourceAccount(code){return SOURCE_ACCOUNTS.find(a=>a.code===code)||SOURCE_ACCOUNTS[0];}
+function findDestAccount(r,label){return (MERCHANT_BANK_ACCOUNTS[r.m]||[]).find(a=>a.label===label);}
+function accountRows(a){
+  if(!a)return '<div class="ir"><span class="k">—</span><span class="v">—</span></div>';
+  return `<div class="ir"><span class="k">Legal Name</span><span class="v">${a.name}</span></div>
+    <div class="ir"><span class="k">Bank Account Number</span><span class="v mono">${a.account}</span></div>
+    <div class="ir"><span class="k">Bank Name</span><span class="v">${a.bank}</span></div>
+    <div class="ir"><span class="k">Swift Code</span><span class="v mono">${a.swift}</span></div>
+    <div class="ir"><span class="k">Country Code</span><span class="v mono">${a.country}</span></div>`;
+}
+function onSourceChange(){
+  const code=document.getElementById('set-source').value;
+  document.getElementById('payer-detail').innerHTML=accountRows(findSourceAccount(code));
+}
+function onDestChange(){
+  const r=STATEMENTS.find(x=>x.id===curSettleId),label=document.getElementById('set-dest').value;
+  document.getElementById('payee-detail').innerHTML=accountRows(findDestAccount(r,label));
+  syncSettleBtn();
+}
+function refreshSummary(r){
+  const {fee,received}=lookupFee(r.sa);
+  document.getElementById('sum-wamt').innerText=r.sa.toFixed(2)+' USD';
+  document.getElementById('sum-fee').innerText=fee.toFixed(2)+' USD';
+  document.getElementById('sum-recv').innerText=received.toFixed(2)+' USD';
+}
+function fillSourceOptions(selectedLabel){
+  const sel=document.getElementById('set-source');
+  sel.innerHTML=SOURCE_ACCOUNTS.map(a=>`<option value="${a.code}">${a.label} (${a.account})</option>`).join('');
+  const match=SOURCE_ACCOUNTS.find(a=>a.label===selectedLabel);
+  sel.value=match?match.code:SOURCE_ACCOUNTS[0].code;
+}
+function fillDestOptions(r,selectedLabel){
+  const sel=document.getElementById('set-dest'),accounts=MERCHANT_BANK_ACCOUNTS[r.m]||[];
+  const emptyEl=document.getElementById('dest-empty'),loadEl=document.getElementById('dest-loading');
+  loadEl.classList.add('on');emptyEl.classList.remove('on');sel.disabled=true;sel.innerHTML='';
+  document.getElementById('payee-detail').innerHTML=accountRows(null);
+  document.getElementById('set-confirm').disabled=true;
+  setTimeout(()=>{
+    loadEl.classList.remove('on');
+    if(accounts.length===0){
+      sel.disabled=true;emptyEl.classList.add('on');
+    }else{
+      sel.disabled=false;
+      sel.innerHTML=accounts.map(a=>`<option value="${a.label}">${a.label} (${a.account})</option>`).join('');
+      sel.value=(selectedLabel&&accounts.some(a=>a.label===selectedLabel))?selectedLabel:accounts[0].label;
+    }
+    onDestChange();
+  },500);
+}
+function syncSettleBtn(){
+  const sel=document.getElementById('set-dest');
+  document.getElementById('set-confirm').disabled=sel.disabled||!sel.value;
+}
+function openSettle(id,isRetry){
+  curSettleId=id;const r=STATEMENTS.find(x=>x.id===id);
+  document.getElementById('set-info').innerHTML=infoRows(r)+
+    `<div class="ir"><span class="k">Settlement Amount</span><span class="v mono">${r.sa!=null?r.sa.toFixed(2)+' USD':'—'}</span></div>`;
+  document.getElementById('set-alert').className='alert';
+  fillSourceOptions(isRetry?r.source:null);onSourceChange();
+  fillDestOptions(r,isRetry?r.destination:null);
+  refreshSummary(r);
+  document.getElementById('set-confirm').innerHTML='Confirm Settlement';
+  openModal('settleModal');
+}
+function confirmSettle(){
+  const r=STATEMENTS.find(x=>x.id===curSettleId),btn=document.getElementById('set-confirm');
+  const sourceAcc=findSourceAccount(document.getElementById('set-source').value);
+  const destLabel=document.getElementById('set-dest').value;
+  if(!destLabel)return;
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span> Submitting…';
+  setTimeout(()=>{
+    r.status='PENDING_WITHDRAWAL_REVIEW';r.source=sourceAcc.label;r.destination=destLabel;
+    r.ops.push({t:now(),action:`Withdrawal submitted (Source: ${sourceAcc.label} → Destination: ${destLabel})`,who:CURRENT_USER,k:'withdrawal'});
+    closeModal('settleModal');btn.innerHTML='Confirm Settlement';
+    toast('Withdrawal submitted. Waiting for B10 review.');render();
+    simulateWithdrawalOutcome(r.id);
+  },1000);
+}
+function simulateWithdrawalOutcome(id){
+  setTimeout(()=>{
+    const r=STATEMENTS.find(x=>x.id===id);
+    if(!r||r.status!=='PENDING_WITHDRAWAL_REVIEW')return;
+    if(Math.random()>0.75){
+      r.status='SETTLEMENT_FAILED';
+      r.ops.push({t:now(),action:'Withdrawal rejected by B10',who:'system',k:'withdrawal'});
+      toast('Withdrawal was rejected. Please review and retry.','err');
+    }else{
+      const wid='WD'+now().replace(/[-: ]/g,'')+String(Math.floor(Math.random()*900+100));
+      r.wid=wid;
+      r.ops.push({t:now(),action:'Withdrawal completed · withdrawalId '+wid,who:'system',k:'withdrawal'});
+      if(Math.random()>0.2){
+        r.status='SETTLED';r.settledDate=now().slice(0,10);
+        r.ops.push({t:now(),action:'Settlement notification email sent',who:'system',k:'notify'});
+        toast('Withdrawal completed and merchant notified. Statement settled.');
+      }else{
+        r.status='SETTLEMENT_NOTIFICATION_FAILED';
+        r.ops.push({t:now(),action:'Settlement notification email failed to send',who:'system',k:'notify'});
+        toast('Withdrawal completed, but the notification email failed to send.','err');
+      }
+    }
+    render();
+  },3500);
+}
+function resendNotification(id){
+  const r=STATEMENTS.find(x=>x.id===id);
+  toast('Resending notification email…');
+  setTimeout(()=>{
+    if(Math.random()>0.25){
+      r.status='SETTLED';r.settledDate=now().slice(0,10);
+      r.ops.push({t:now(),action:'Settlement notification email sent (resent)',who:CURRENT_USER,k:'notify'});
+      toast('Notification email sent. Statement settled.');
+    }else{
+      r.ops.push({t:now(),action:'Settlement notification email failed to send (resend attempt)',who:CURRENT_USER,k:'notify'});
+      toast('Notification email failed again. Please retry.','err');
+    }
+    render();
+  },900);
+}
+function openDetail(id){
+  const r=STATEMENTS.find(x=>x.id===id),sm=STATUS_META[BACKEND_TO_FRONTEND[r.status]];
+  document.getElementById('dt-info').innerHTML=infoRows(r)+
+    `<div class="ir"><span class="k">Status</span><span class="v">${sm.label}</span></div>`+
+    `<div class="ir"><span class="k">Withdrawal ID</span><span class="v mono">${r.wid?r.wid:'—'}</span></div>`+
+    (r.source?`<div class="ir"><span class="k">Source</span><span class="v">${r.source}</span></div>`:'')+
+    (r.destination?`<div class="ir"><span class="k">Destination</span><span class="v">${r.destination}</span></div>`:'')+
+    (r.settledDate?`<div class="ir"><span class="k">Settlement Date</span><span class="v">${r.settledDate}</span></div>`:'');
+  const log=(r.ops||[]).filter(o=>o.k==='upload'||o.k==='settle'||o.k==='recreate'||o.k==='withdrawal'||o.k==='notify').sort((a,b)=>a.t.localeCompare(b.t));
+  document.getElementById('dt-ops').innerHTML=log.length?
+    `<table class="ops"><thead><tr><th style="width:140px">Time</th><th>Action</th><th style="width:220px">Operator</th></tr></thead><tbody>`+
+    log.map(o=>`<tr><td class="mono">${o.t}</td><td>${o.action}</td><td class="${o.who==='system'?'who-sys':'mono'}">${o.who==='system'?'system':o.who}</td></tr>`).join('')+
+    `</tbody></table>`:'<div style="color:var(--subtle);font-size:13px;margin-bottom:16px">No operations yet.</div>';
+  openModal('detailModal');
+}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.backdrop').forEach(b=>b.addEventListener('click',e=>{if(e.target===b)b.classList.remove('open');}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.backdrop.open').forEach(b=>b.classList.remove('open'));});
+function copyText(t){navigator.clipboard&&navigator.clipboard.writeText(t);toast('Copied: '+(t.length>20?t.slice(0,20)+'…':t));}
+function toast(msg,type){const w=document.getElementById('toasts'),el=document.createElement('div');el.className='toast'+(type==='err'?' err':'');el.innerText=msg;w.appendChild(el);setTimeout(()=>el.remove(),3000);}
+function simulateLoading(){
+  const tb=document.getElementById('tbody');document.getElementById('emptystate').style.display='none';
+  tb.innerHTML=Array(6).fill('<tr><td colspan="10" style="padding:0"><div class="skel"></div></td></tr>').join('');
+  setTimeout(render,1100);
+}
+initFilters();render();
+</script>
+</body>
+</html>
