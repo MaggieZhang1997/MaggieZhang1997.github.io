@@ -377,8 +377,8 @@ const MERCHANT_BANK_ACCOUNTS={
   'A0102050':[], // no withdrawal account registered — used to demo the empty-destination guard
 };
 function lookupFee(amount){
-  // Mock fee-config lookup (fixed chargeType=OUR): 0.2% of amount, clamped [5, 50]
-  const fee=Math.min(50,Math.max(5,Math.round(amount*0.002*100)/100));
+  // Mock fee-config lookup (fixed chargeType=OUR): fee fixed at 0 for this demo
+  const fee=0;
   return {fee,received:amount}; // OUR: merchant receives the full withdrawal amount, fee borne by source
 }
 
