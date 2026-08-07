@@ -237,9 +237,8 @@
         <option value="CREATING">Creating</option>
         <option value="PENDING_UPLOAD">Pending Upload</option>
         <option value="PENDING_SETTLEMENT">Pending Settlement</option>
-        <option value="PENDING_WITHDRAWAL_REVIEW">Pending Withdrawal Review</option>
+        <option value="PENDING_SETTLEMENT_WITHDRAWAL">Pending Settlement Withdrawal</option>
         <option value="SETTLED">Settled</option>
-        <option value="SETTLEMENT_FAILED">Settlement Failed</option>
         <option value="SETTLEMENT_NOTIFICATION_FAILED">Notification Failed</option>
         <option value="RECONCILE_FAILED">Reconcile Failed</option>
       </select>
@@ -347,6 +346,19 @@
   </div>
 </div>
 
+<!-- Withdrawal Detail modal -->
+<div class="backdrop" id="wdDetailModal">
+  <div class="modal" style="width:780px">
+    <h3>Withdrawal Detail</h3>
+    <div class="lead" id="wd-lead"></div>
+    <div id="wd-list"></div>
+    <div class="foot">
+      <button class="btn btn-primary" id="wd-create-btn" style="display:none" onclick="createWithdrawalFromDetail()">Create Withdrawal</button>
+      <button class="btn btn-ghost" onclick="closeModal('wdDetailModal')">Close</button>
+    </div>
+  </div>
+</div>
+
 <!-- Statement detail modal -->
 <div class="backdrop" id="detailModal">
   <div class="modal" style="width:660px">
@@ -385,34 +397,43 @@ function lookupFee(amount){
 let STATEMENTS=[
  {id:'30a73fe147644d83aa1068dd76a213d0',m:'A0101913',date:'2026-06-10',status:'UPLOADED',sa:363.55,
   ops:[{t:'2026-06-11 00:32',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:10',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-11 08:11',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-11 08:11',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-11 09:41',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'}]},
- {id:'b41c9aa2f0e84c10bb22e7d5c901aa31',m:'A0101913',date:'2026-06-09',status:'SETTLED',wid:'WD2026060911130001',sa:912.30,settledDate:'2026-06-10',
-  ops:[{t:'2026-06-10 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:05',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-10 08:06',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-10 08:06',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-10 09:24',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-10 10:05',action:'Settled (bank transfer) · withdrawalId WD2026060911130001',who:'eddie.hui@metacomp.com',k:'settle'}]},
+ {id:'b41c9aa2f0e84c10bb22e7d5c901aa31',m:'A0101913',date:'2026-06-09',status:'SETTLED',sa:912.30,settledDate:'2026-06-10',
+  withdrawals:[{id:'WD2026060911130001',amount:912.30,fee:0,received:912.30,raw:'completed',time:'2026-06-10 10:05',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}],
+  ops:[{t:'2026-06-10 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:05',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-10 08:06',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-10 08:06',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-10 09:24',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-10 09:50',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060911130001',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-10 10:05',action:'Withdrawal completed · withdrawalId WD2026060911130001',who:'system',k:'withdrawal'},{t:'2026-06-10 10:06',action:'Settlement notification email sent',who:'system',k:'notify'}]},
  {id:'7f2e10c4d9b3489aa0d61f3e2c884512',m:'A0103103',date:'2026-06-10',status:'FILE_GENERATED',sa:1540.00,
   ops:[{t:'2026-06-11 00:33',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:20',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-11 08:21',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-11 08:21',action:'Settlement file generated',who:'system',k:'system'}]},
  {id:'c5d8b1e6a2f74e93b8c40a7d915ef022',m:'A0103103',date:'2026-06-09',status:'RECONCILE_FAILED',reconcileError:'Reconciliation mismatch: pending settlement amount ≠ net settlement amount — please investigate',
   ops:[{t:'2026-06-10 00:33',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:14',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-10 08:15',action:'Reconciliation failed: amount mismatch',who:'system',k:'system'}]},
  {id:'9a0f7c33e1d2470bb9aa55c8d7e10433',m:'A0102050',date:'2026-06-10',status:'STATEMENT_DOWNLOADED',
   ops:[{t:'2026-06-11 00:34',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:30',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'}]},
- {id:'e6b2d40af8c14a7e8d33b91076c5f944',m:'A0102050',date:'2026-06-09',status:'SETTLED',wid:'WD2026060911360002',sa:1075.00,settledDate:'2026-06-10',
-  ops:[{t:'2026-06-10 00:34',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:12',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-10 08:13',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-10 08:13',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-10 09:50',action:'Uploaded to SFTP',who:'ops.lee@metacomp.com',k:'upload'},{t:'2026-06-10 11:20',action:'Settled (bank transfer) · withdrawalId WD2026060911360002',who:'ops.lee@metacomp.com',k:'settle'}]},
+ {id:'e6b2d40af8c14a7e8d33b91076c5f944',m:'A0102050',date:'2026-06-09',status:'SETTLED',sa:1075.00,settledDate:'2026-06-10',
+  withdrawals:[{id:'WD2026060911360002',amount:1075.00,fee:0,received:1075.00,raw:'completed',time:'2026-06-10 11:20',source:'GLDB Bank (Omnibus)',destination:'Nova Digital Ltd'}],
+  ops:[{t:'2026-06-10 00:34',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:12',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-10 08:13',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-10 08:13',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-10 09:50',action:'Uploaded to SFTP',who:'ops.lee@metacomp.com',k:'upload'},{t:'2026-06-10 11:05',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Nova Digital Ltd) · withdrawalId WD2026060911360002',who:'ops.lee@metacomp.com',k:'withdrawal'},{t:'2026-06-10 11:20',action:'Withdrawal completed · withdrawalId WD2026060911360002',who:'system',k:'withdrawal'},{t:'2026-06-10 11:21',action:'Settlement notification email sent',who:'system',k:'notify'}]},
  {id:'18cc7e09b5a34d62a1f0e8d4c3b29055',m:'A0101913',date:'2026-06-08',status:'STATEMENT_GENERATED',
   ops:[{t:'2026-06-09 00:32',action:'Statement generated',who:'system',k:'system'}]},
  {id:'2d9af16b4c7e48f1a6b0c2e93d815166',m:'A0103103',date:'2026-06-08',status:'PENDING',ops:[]},
- {id:'4b6a80f5c1e94a2d9e77b0a3c8f61277',m:'A0101913',date:'2026-06-07',status:'PENDING_WITHDRAWAL_REVIEW',sa:588.20,source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)',
-  ops:[{t:'2026-06-08 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-08 08:02',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-08 08:03',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-08 08:03',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-08 09:15',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-08 10:02',action:'Withdrawal submitted (Source: GLDB → Destination: Acme Pay Pte Ltd (Alibaba))',who:'eddie.hui@metacomp.com',k:'withdrawal'}]},
- {id:'5f13c204a9e64b0f8c22d9e0a71b6388',m:'A0103103',date:'2026-06-06',status:'SETTLEMENT_FAILED',sa:2140.00,source:'GLDB Bank (Omnibus)',destination:'Skyline Commerce Ltd',
-  ops:[{t:'2026-06-07 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-07 08:11',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-07 08:12',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-07 08:12',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-07 09:30',action:'Uploaded to SFTP',who:'ops.lee@metacomp.com',k:'upload'},{t:'2026-06-07 10:00',action:'Withdrawal submitted (Source: GLDB → Destination: Skyline Commerce Ltd)',who:'ops.lee@metacomp.com',k:'withdrawal'},{t:'2026-06-07 10:24',action:'Withdrawal rejected by B10',who:'system',k:'withdrawal'}]},
- {id:'6a2d91e0b8f7401a9d55c3b0e4a89f10',m:'A0101913',date:'2026-06-05',status:'SETTLEMENT_NOTIFICATION_FAILED',sa:749.80,wid:'WD2026060611130007',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)',
-  ops:[{t:'2026-06-06 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-06 08:00',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-06 08:01',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-06 08:01',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-06 09:10',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-06 09:50',action:'Withdrawal submitted (Source: GLDB → Destination: Acme Pay Pte Ltd (Alibaba))',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-06 10:20',action:'Withdrawal completed · withdrawalId WD2026060611130007',who:'system',k:'withdrawal'},{t:'2026-06-06 10:21',action:'Settlement notification email failed to send',who:'system',k:'notify'}]},
+ {id:'4b6a80f5c1e94a2d9e77b0a3c8f61277',m:'A0101913',date:'2026-06-07',status:'PENDING_SETTLEMENT_WITHDRAWAL',sa:588.20,
+  withdrawals:[
+    {id:'WD2026060809150001',amount:588.20,fee:0,received:588.20,raw:'rejected',time:'2026-06-08 09:15',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'},
+    {id:'WD2026060810020002',amount:588.20,fee:0,received:588.20,raw:'under_review',time:'2026-06-08 10:02',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}
+  ],
+  ops:[{t:'2026-06-08 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-08 08:02',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-08 08:03',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-08 08:03',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-08 09:10',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-08 09:15',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060809150001',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-08 09:40',action:'Withdrawal rejected by B10 · withdrawalId WD2026060809150001',who:'system',k:'withdrawal'},{t:'2026-06-08 10:02',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060810020002',who:'eddie.hui@metacomp.com',k:'withdrawal'}]},
+ {id:'5f13c204a9e64b0f8c22d9e0a71b6388',m:'A0103103',date:'2026-06-06',status:'PENDING_SETTLEMENT_WITHDRAWAL',sa:2140.00,
+  withdrawals:[
+    {id:'WD2026060710000003',amount:2140.00,fee:0,received:2140.00,raw:'rejected',time:'2026-06-07 10:00',source:'GLDB Bank (Omnibus)',destination:'Skyline Commerce Ltd'}
+  ],
+  ops:[{t:'2026-06-07 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-07 08:11',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-07 08:12',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-07 08:12',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-07 09:30',action:'Uploaded to SFTP',who:'ops.lee@metacomp.com',k:'upload'},{t:'2026-06-07 10:00',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Skyline Commerce Ltd) · withdrawalId WD2026060710000003',who:'ops.lee@metacomp.com',k:'withdrawal'},{t:'2026-06-07 10:24',action:'Withdrawal rejected by B10 · withdrawalId WD2026060710000003',who:'system',k:'withdrawal'}]},
+ {id:'6a2d91e0b8f7401a9d55c3b0e4a89f10',m:'A0101913',date:'2026-06-05',status:'SETTLEMENT_NOTIFICATION_FAILED',sa:749.80,
+  withdrawals:[{id:'WD2026060611130007',amount:749.80,fee:0,received:749.80,raw:'completed',time:'2026-06-06 10:20',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}],
+  ops:[{t:'2026-06-06 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-06 08:00',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-06 08:01',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-06 08:01',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-06 09:10',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-06 09:50',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060611130007',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-06 10:20',action:'Withdrawal completed · withdrawalId WD2026060611130007',who:'system',k:'withdrawal'},{t:'2026-06-06 10:21',action:'Settlement notification email failed to send',who:'system',k:'notify'}]},
 ];
 
 const BACKEND_TO_FRONTEND={
   PENDING:'CREATING',STATEMENT_GENERATED:'CREATING',STATEMENT_DOWNLOADED:'CREATING',RECONCILE_SUCCESS:'CREATING',
   FILE_GENERATED:'PENDING_UPLOAD',
   UPLOADED:'PENDING_SETTLEMENT',
-  PENDING_WITHDRAWAL_REVIEW:'PENDING_WITHDRAWAL_REVIEW',
+  PENDING_SETTLEMENT_WITHDRAWAL:'PENDING_SETTLEMENT_WITHDRAWAL',
   SETTLED:'SETTLED',
-  SETTLEMENT_FAILED:'SETTLEMENT_FAILED',
   SETTLEMENT_NOTIFICATION_FAILED:'SETTLEMENT_NOTIFICATION_FAILED',
   RECONCILE_FAILED:'RECONCILE_FAILED',
 };
@@ -420,20 +441,28 @@ const STATUS_META={
   CREATING:{label:'Creating',cls:'b-gen',loading:true},
   PENDING_UPLOAD:{label:'Pending Upload',cls:'b-pending'},
   PENDING_SETTLEMENT:{label:'Pending Settlement',cls:'b-uploaded'},
-  PENDING_WITHDRAWAL_REVIEW:{label:'Pending Withdrawal Review',cls:'b-review',loading:true},
+  PENDING_SETTLEMENT_WITHDRAWAL:{label:'Pending Settlement Withdrawal',cls:'b-review',loading:true},
   SETTLED:{label:'Settled',cls:'b-settled'},
-  SETTLEMENT_FAILED:{label:'Settlement Failed',cls:'b-setfail'},
   SETTLEMENT_NOTIFICATION_FAILED:{label:'Notification Failed',cls:'b-notifyfail'},
   RECONCILE_FAILED:{label:'Reconcile Failed',cls:'b-genfail'},
 };
+// Real B10 withdrawal statuses collapse to exactly 3 display buckets — anything not rejected/completed is Processing.
+const WD_BUCKET_META={
+  rejected:{label:'Rejected',cls:'b-setfail'},
+  completed:{label:'Completed',cls:'b-settled'},
+  processing:{label:'Processing',cls:'b-review',loading:true},
+};
+function bucketOf(raw){return raw==='rejected'?'rejected':raw==='completed'?'completed':'processing';}
+function latestWithdrawal(r){const l=r.withdrawals||[];return l.length?l[l.length-1]:null;}
+function hasActiveWithdrawal(r){return (r.withdrawals||[]).some(w=>bucketOf(w.raw)!=='rejected');}
 const FILTER_GROUP={ALL:null,CREATING:['PENDING','STATEMENT_GENERATED','STATEMENT_DOWNLOADED','RECONCILE_SUCCESS'],PENDING_UPLOAD:['FILE_GENERATED'],PENDING_SETTLEMENT:['UPLOADED'],
-  PENDING_WITHDRAWAL_REVIEW:['PENDING_WITHDRAWAL_REVIEW'],SETTLED:['SETTLED'],SETTLEMENT_FAILED:['SETTLEMENT_FAILED'],SETTLEMENT_NOTIFICATION_FAILED:['SETTLEMENT_NOTIFICATION_FAILED'],
+  PENDING_SETTLEMENT_WITHDRAWAL:['PENDING_SETTLEMENT_WITHDRAWAL'],SETTLED:['SETTLED'],SETTLEMENT_NOTIFICATION_FAILED:['SETTLEMENT_NOTIFICATION_FAILED'],
   RECONCILE_FAILED:['RECONCILE_FAILED']};
 const canDownloadStatement=s=>s!=='PENDING';
-const canDownloadSettlement=s=>['FILE_GENERATED','UPLOADED','PENDING_WITHDRAWAL_REVIEW','SETTLED','SETTLEMENT_FAILED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
-const AMOUNT_VISIBLE=s=>['RECONCILE_SUCCESS','FILE_GENERATED','UPLOADED','PENDING_WITHDRAWAL_REVIEW','SETTLED','SETTLEMENT_FAILED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
+const canDownloadSettlement=s=>['FILE_GENERATED','UPLOADED','PENDING_SETTLEMENT_WITHDRAWAL','SETTLED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
+const AMOUNT_VISIBLE=s=>['RECONCILE_SUCCESS','FILE_GENERATED','UPLOADED','PENDING_SETTLEMENT_WITHDRAWAL','SETTLED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
 
-let sortDesc=true,curUploadId=null,curSettleId=null;
+let sortDesc=true,curUploadId=null,curSettleId=null,curWdDetailId=null;
 
 function now(){const d=new Date(),p=n=>String(n).padStart(2,'0');return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;}
 
@@ -467,9 +496,8 @@ function actionsHTML(r){
     case 'CREATING':return `<span style="color:var(--subtle)">—</span>`;
     case 'PENDING_UPLOAD':return `<button class="btn btn-primary btn-sm" onclick="openUpload('${r.id}')">Upload</button>`;
     case 'PENDING_SETTLEMENT':return `<button class="btn btn-primary btn-sm" onclick="openSettle('${r.id}')">Settle</button>`;
-    case 'PENDING_WITHDRAWAL_REVIEW':return `<span style="color:var(--subtle)">—</span>`;
+    case 'PENDING_SETTLEMENT_WITHDRAWAL':return `<button class="btn btn-primary btn-sm" onclick="openWithdrawalDetail('${r.id}')">Withdrawal Detail</button>`;
     case 'SETTLED':return `<span style="color:var(--subtle)">—</span>`;
-    case 'SETTLEMENT_FAILED':return `<button class="btn btn-warning btn-sm" onclick="openSettle('${r.id}',true)">Retry</button>`;
     case 'SETTLEMENT_NOTIFICATION_FAILED':return `<button class="btn btn-primary btn-sm" onclick="resendNotification('${r.id}')">Resend Notification</button>`;
     case 'RECONCILE_FAILED':return `<button class="btn btn-ghost btn-sm" onclick="recreateStatement('${r.id}')">Recreate</button><button class="btn btn-warning btn-sm" onclick="openUpload('${r.id}')">Upload</button>`;
   }
@@ -493,7 +521,7 @@ function render(){
       <td>${r.date}</td>
       <td style="text-align:right">${AMOUNT_VISIBLE(r.status)&&r.sa!=null?`<span class="mono">${r.sa.toFixed(2)} USD</span>`:'<span style="color:var(--subtle)">—</span>'}</td>
       <td>${badge}</td>
-      <td>${r.wid?`<span class="mono">${r.wid}</span>`:'<span style="color:var(--subtle)">—</span>'}</td>
+      <td>${latestWithdrawal(r)?`<span class="mono">${latestWithdrawal(r).id}</span>`:'<span style="color:var(--subtle)">—</span>'}</td>
       <td>${dlCell(r,'settlement')}</td>
       <td>${dlCell(r,'statement')}</td>
       <td><div class="actions">${actionsHTML(r)}</div></td>
@@ -634,13 +662,13 @@ function syncSettleBtn(){
   const sel=document.getElementById('set-dest');
   document.getElementById('set-confirm').disabled=sel.disabled||!sel.value;
 }
-function openSettle(id,isRetry){
+function openSettle(id){
   curSettleId=id;const r=STATEMENTS.find(x=>x.id===id);
   document.getElementById('set-info').innerHTML=infoRows(r)+
     `<div class="ir"><span class="k">Settlement Amount</span><span class="v mono">${r.sa!=null?r.sa.toFixed(2)+' USD':'—'}</span></div>`;
   document.getElementById('set-alert').className='alert';
-  fillSourceOptions(isRetry?r.source:null);onSourceChange();
-  fillDestOptions(r,isRetry?r.destination:null);
+  fillSourceOptions(null);onSourceChange();
+  fillDestOptions(r,null);
   refreshSummary(r);
   document.getElementById('set-confirm').innerHTML='Confirm Settlement';
   openModal('settleModal');
@@ -652,24 +680,29 @@ function confirmSettle(){
   if(!destLabel)return;
   btn.disabled=true;btn.innerHTML='<span class="spin"></span> Submitting…';
   setTimeout(()=>{
-    r.status='PENDING_WITHDRAWAL_REVIEW';r.source=sourceAcc.label;r.destination=destLabel;
-    r.ops.push({t:now(),action:`Withdrawal submitted (Source: ${sourceAcc.label} → Destination: ${destLabel})`,who:CURRENT_USER,k:'withdrawal'});
+    const {fee,received}=lookupFee(r.sa);
+    const wid='WD'+now().replace(/[-: ]/g,'')+String(Math.floor(Math.random()*900+100));
+    r.withdrawals=r.withdrawals||[];
+    r.withdrawals.push({id:wid,amount:r.sa,fee,received,raw:'processing',time:now(),source:sourceAcc.label,destination:destLabel});
+    r.status='PENDING_SETTLEMENT_WITHDRAWAL';
+    r.ops.push({t:now(),action:`Withdrawal submitted (Source: ${sourceAcc.label} → Destination: ${destLabel}) · withdrawalId ${wid}`,who:CURRENT_USER,k:'withdrawal'});
     closeModal('settleModal');btn.innerHTML='Confirm Settlement';
     toast('Withdrawal submitted. Waiting for B10 review.');render();
-    simulateWithdrawalOutcome(r.id);
+    simulateWithdrawalOutcome(r.id,wid);
   },1000);
 }
-function simulateWithdrawalOutcome(id){
+function simulateWithdrawalOutcome(id,wid){
   setTimeout(()=>{
     const r=STATEMENTS.find(x=>x.id===id);
-    if(!r||r.status!=='PENDING_WITHDRAWAL_REVIEW')return;
+    if(!r)return;
+    const w=(r.withdrawals||[]).find(x=>x.id===wid);
+    if(!w||w.raw!=='processing')return;
     if(Math.random()>0.75){
-      r.status='SETTLEMENT_FAILED';
-      r.ops.push({t:now(),action:'Withdrawal rejected by B10',who:'system',k:'withdrawal'});
+      w.raw='rejected';
+      r.ops.push({t:now(),action:'Withdrawal rejected by B10 · withdrawalId '+wid,who:'system',k:'withdrawal'});
       toast('Withdrawal was rejected. Please review and retry.','err');
     }else{
-      const wid='WD'+now().replace(/[-: ]/g,'')+String(Math.floor(Math.random()*900+100));
-      r.wid=wid;
+      w.raw='completed';
       r.ops.push({t:now(),action:'Withdrawal completed · withdrawalId '+wid,who:'system',k:'withdrawal'});
       if(Math.random()>0.2){
         r.status='SETTLED';r.settledDate=now().slice(0,10);
@@ -683,6 +716,28 @@ function simulateWithdrawalOutcome(id){
     }
     render();
   },3500);
+}
+function openWithdrawalDetail(id){
+  curWdDetailId=id;const r=STATEMENTS.find(x=>x.id===id);
+  document.getElementById('wd-lead').innerHTML=`Settlement Id <span class="mono hl">${r.id}</span> · ${MERCHANTS[r.m]}`;
+  const list=(r.withdrawals||[]).slice().sort((a,b)=>b.time.localeCompare(a.time));
+  document.getElementById('wd-list').innerHTML=list.length?
+    `<table class="ops"><thead><tr><th>withdrawalId</th><th style="text-align:right">Withdrawal Amount</th><th style="text-align:right">Fee Amount</th><th style="text-align:right">Amount Received</th><th>Status</th><th>Initiated Time</th></tr></thead><tbody>`+
+    list.map(w=>{
+      const bm=WD_BUCKET_META[bucketOf(w.raw)];
+      return `<tr><td class="mono">${w.id}</td>
+        <td class="mono" style="text-align:right">${w.amount.toFixed(2)} USD</td>
+        <td class="mono" style="text-align:right">${w.fee.toFixed(2)} USD</td>
+        <td class="mono" style="text-align:right">${w.received.toFixed(2)} USD</td>
+        <td><span class="badge ${bm.cls}">${bm.loading?'<span class="spin"></span>':'<span class="bdot"></span>'}${bm.label}</span></td>
+        <td class="mono">${w.time}</td></tr>`;
+    }).join('')+`</tbody></table>`:
+    '<div style="color:var(--subtle);font-size:13px;margin-bottom:16px">No withdrawal has been created yet.</div>';
+  document.getElementById('wd-create-btn').style.display=hasActiveWithdrawal(r)?'none':'inline-flex';
+  openModal('wdDetailModal');
+}
+function createWithdrawalFromDetail(){
+  const id=curWdDetailId;closeModal('wdDetailModal');openSettle(id);
 }
 function resendNotification(id){
   const r=STATEMENTS.find(x=>x.id===id);
@@ -700,12 +755,13 @@ function resendNotification(id){
   },900);
 }
 function openDetail(id){
-  const r=STATEMENTS.find(x=>x.id===id),sm=STATUS_META[BACKEND_TO_FRONTEND[r.status]];
+  const r=STATEMENTS.find(x=>x.id===id),sm=STATUS_META[BACKEND_TO_FRONTEND[r.status]],lw=latestWithdrawal(r);
   document.getElementById('dt-info').innerHTML=infoRows(r)+
     `<div class="ir"><span class="k">Status</span><span class="v">${sm.label}</span></div>`+
-    `<div class="ir"><span class="k">Withdrawal ID</span><span class="v mono">${r.wid?r.wid:'—'}</span></div>`+
-    (r.source?`<div class="ir"><span class="k">Source</span><span class="v">${r.source}</span></div>`:'')+
-    (r.destination?`<div class="ir"><span class="k">Destination</span><span class="v">${r.destination}</span></div>`:'')+
+    `<div class="ir"><span class="k">Withdrawal ID</span><span class="v mono">${lw?lw.id:'—'}</span></div>`+
+    (lw?`<div class="ir"><span class="k">Source</span><span class="v">${lw.source}</span></div>`:'')+
+    (lw?`<div class="ir"><span class="k">Destination</span><span class="v">${lw.destination}</span></div>`:'')+
+    ((r.withdrawals&&r.withdrawals.length)?`<div class="ir"><span class="k">Withdrawal History</span><span class="v"><button class="btn-link" onclick="closeModal('detailModal');openWithdrawalDetail('${r.id}')">View all (${r.withdrawals.length})</button></span></div>`:'')+
     (r.settledDate?`<div class="ir"><span class="k">Settlement Date</span><span class="v">${r.settledDate}</span></div>`:'');
   const log=(r.ops||[]).filter(o=>o.k==='upload'||o.k==='settle'||o.k==='recreate'||o.k==='withdrawal'||o.k==='notify').sort((a,b)=>a.t.localeCompare(b.t));
   document.getElementById('dt-ops').innerHTML=log.length?
