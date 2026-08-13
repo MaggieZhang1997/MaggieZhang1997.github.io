@@ -238,7 +238,7 @@
         <option value="PENDING_UPLOAD">Pending Upload</option>
         <option value="PENDING_SETTLEMENT">Pending Settlement</option>
         <option value="WITHDRAWING">WITHDRAWING</option>
-        <option value="WITHDRAWAL_FAILED">Withdrawal Rejected</option>
+        <option value="WITHDRAWAL_FAILED">Withdrawal Failed</option>
         <option value="WITHDRAWAL_UNKNOWN">Withdrawal Unknown</option>
         <option value="SETTLED">Settled</option>
         <option value="NOTIFICATION_FAILED">Notification Failed</option>
@@ -479,14 +479,14 @@ const STATUS_META={
   PENDING_UPLOAD:{label:'Pending Upload',cls:'b-pending'},
   PENDING_SETTLEMENT:{label:'Pending Settlement',cls:'b-uploaded'},
   WITHDRAWING:{label:'WITHDRAWING',cls:'b-review',loading:true},
-  WITHDRAWAL_FAILED:{label:'Withdrawal Rejected',cls:'b-setfail'},
+  WITHDRAWAL_FAILED:{label:'Withdrawal Failed',cls:'b-setfail'},
   WITHDRAWAL_UNKNOWN:{label:'Withdrawal Unknown',cls:'b-pending'},
   SETTLED:{label:'Settled',cls:'b-settled'},
   NOTIFICATION_FAILED:{label:'Notification Failed',cls:'b-notifyfail'},
   RECONCILE_FAILED:{label:'Reconcile Failed',cls:'b-genfail'},
 };
 // From WITHDRAWING there are exactly 3 possible outcomes for a withdrawal attempt: completed (→ Settled),
-// rejected (→ Withdrawal Rejected, retriable), or unknown/timed-out with no withdrawalId returned (→ Withdrawal
+// rejected (→ Withdrawal Failed, retriable), or unknown/timed-out with no withdrawalId returned (→ Withdrawal
 // Unknown, needs Ops manual review). "processing" is the transient in-flight bucket while awaiting that outcome.
 const WD_BUCKET_META={
   processing:{label:'Processing',cls:'b-review',loading:true},
@@ -771,7 +771,7 @@ function confirmSettle(){
 }
 // From WITHDRAWING there are exactly 3 possible outcomes for the withdrawal just submitted:
 // 1) reviewed and completed → Settled (then the usual notify success/fail sub-branch)
-// 2) reviewed and rejected → Withdrawal Rejected (retriable via Confirm Settlement)
+// 2) reviewed and rejected → Withdrawal Failed (retriable via Confirm Settlement)
 // 3) request timed out, no withdrawalId returned → Withdrawal Unknown (needs Ops manual Update Withdrawal)
 function resolveWithdrawal(id,wid){
   setTimeout(()=>{
