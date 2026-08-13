@@ -238,7 +238,8 @@
         <option value="PENDING_UPLOAD">Pending Upload</option>
         <option value="PENDING_SETTLEMENT">Pending Settlement</option>
         <option value="WITHDRAWING">WITHDRAWING</option>
-        <option value="WITHDRAWAL_FAILED">Withdrawal Failed</option>
+        <option value="WITHDRAWAL_FAILED">Withdrawal Rejected</option>
+        <option value="WITHDRAWAL_UNKNOWN">Withdrawal Unknown</option>
         <option value="SETTLED">Settled</option>
         <option value="NOTIFICATION_FAILED">Notification Failed</option>
         <option value="RECONCILE_FAILED">Reconcile Failed</option>
@@ -363,26 +364,25 @@
   </div>
 </div>
 
-<!-- Exception resolve modal (Withdrawal Detail row action) -->
-<div class="backdrop" id="resolveModal">
+<!-- Withdrawal Unknown manual-update modal (Withdrawal Detail row action) -->
+<div class="backdrop" id="resolveModal" style="z-index:210">
   <div class="modal">
-    <h3>Resolve Withdrawal Exception</h3>
-    <div class="lead">This withdrawal attempt's submission result is unknown. Please verify the actual outcome with Payment/B10 before resolving — do not guess.</div>
+    <h3>Update Withdrawal Status</h3>
+    <div class="lead">The withdrawal ID was not obtained due to a system issue. Please check the transaction list to see whether a withdrawal transaction has already been generated.</div>
     <div class="info-block" id="resolve-info"></div>
-    <div class="field" style="margin-bottom:12px"><label>Resolution</label>
+    <div class="field" style="margin-bottom:12px"><label>Outcome</label>
       <div style="display:flex;gap:18px;margin-top:6px;font-size:13.5px">
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="resolve-action" value="BIND" checked onchange="onResolveActionChange()" /> Mark as succeeded (BIND)</label>
-        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="resolve-action" value="FAILED" onchange="onResolveActionChange()" /> Mark as failed</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="resolve-action" value="BIND" checked onchange="onResolveActionChange()" /> Succeeded</label>
+        <label style="display:flex;align-items:center;gap:6px;cursor:pointer"><input type="radio" name="resolve-action" value="FAILED" onchange="onResolveActionChange()" /> Failed</label>
       </div>
     </div>
-    <div class="field" id="resolve-pc-field" style="margin-bottom:12px"><label>Payment Code <span class="req">*</span></label>
-      <input type="text" id="resolve-paymentcode" class="ctrl" style="width:100%" placeholder="Verified paymentCode from Payment/B10" oninput="syncResolveBtn()" /></div>
-    <div class="field" style="margin-bottom:12px"><label>Comment</label>
-      <textarea id="resolve-comment" class="ctrl" style="width:100%;height:70px;padding:8px 10px;font-family:inherit;resize:vertical" placeholder="Notes for audit trail (optional)"></textarea></div>
+    <div class="field" id="resolve-pc-field" style="margin-bottom:12px"><label>Withdrawal ID <span class="req">*</span></label>
+      <input type="text" id="resolve-paymentcode" class="ctrl" style="width:100%" placeholder="Withdrawal ID found on Payment/B10 side" oninput="syncResolveBtn()" /></div>
+    <div class="field" style="margin-bottom:12px" id="resolve-verify-note"><span style="font-size:12px;color:var(--subtle)">On submit, the system checks merchant ID, amount, and reference against this settlement before accepting the match.</span></div>
     <div class="alert" id="resolve-alert"></div>
     <div class="foot">
       <button class="btn btn-ghost" onclick="closeModal('resolveModal')">Cancel</button>
-      <button class="btn btn-primary" id="resolve-confirm" onclick="confirmResolve()">Resolve</button>
+      <button class="btn btn-primary" id="resolve-confirm" onclick="confirmResolve()">Confirm</button>
     </div>
   </div>
 </div>
@@ -393,7 +393,7 @@
     <h3>Settlement Detail</h3>
     <div class="info-block" id="dt-info"></div>
     <h4 class="sec">Withdrawal History</h4>
-    <div id="dt-wd"></div>
+    <div id="dt-wd" style="overflow-x:auto;max-width:100%"></div>
     <h4 class="sec">Operation history</h4>
     <div id="dt-ops"></div>
     <div class="foot"><button class="btn btn-ghost" onclick="closeModal('detailModal')">Close</button></div>
@@ -428,7 +428,7 @@ let STATEMENTS=[
  {id:'30a73fe147644d83aa1068dd76a213d0',m:'A0101913',date:'2026-06-10',status:'UPLOADED',sa:363.55,confirmMode:'AUTO',
   ops:[{t:'2026-06-11 00:32',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:10',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-11 08:11',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-11 08:11',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-11 09:41',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'}]},
  {id:'b41c9aa2f0e84c10bb22e7d5c901aa31',m:'A0101913',date:'2026-06-09',status:'SETTLED',sa:912.30,settledDate:'2026-06-10',confirmMode:'AUTO',
-  withdrawals:[{id:'WD2026060911130001',amount:912.30,fee:0,received:912.30,raw:'COMPLETED',time:'2026-06-10 10:05',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}],
+  withdrawals:[{id:'WD2026060911130001',commandId:'CMD100101',amount:912.30,fee:0,received:912.30,raw:'COMPLETED',time:'2026-06-10 10:05',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}],
   ops:[{t:'2026-06-10 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-10 08:05',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-10 08:06',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-10 08:06',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-10 09:24',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-10 09:50',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060911130001',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-10 10:05',action:'Withdrawal completed · withdrawalId WD2026060911130001',who:'system',k:'withdrawal'},{t:'2026-06-10 10:06',action:'Settlement notification email sent',who:'system',k:'notify'}]},
  {id:'7f2e10c4d9b3489aa0d61f3e2c884512',m:'A0103103',date:'2026-06-10',status:'FILE_GENERATED',sa:1540.00,confirmMode:'AUTO',
   ops:[{t:'2026-06-11 00:33',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:20',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-11 08:21',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-11 08:21',action:'Settlement file generated',who:'system',k:'system'}]},
@@ -442,19 +442,19 @@ let STATEMENTS=[
  {id:'18cc7e09b5a34d62a1f0e8d4c3b29055',m:'A0101913',date:'2026-06-08',status:'STATEMENT_GENERATED',confirmMode:'AUTO',
   ops:[{t:'2026-06-09 00:32',action:'Statement generated',who:'system',k:'system'}]},
  {id:'2d9af16b4c7e48f1a6b0c2e93d815166',m:'A0103103',date:'2026-06-08',status:'PENDING',confirmMode:'AUTO',ops:[]},
- {id:'4b6a80f5c1e94a2d9e77b0a3c8f61277',m:'A0101913',date:'2026-06-07',status:'PENDING_SETTLEMENT_WITHDRAWAL',sa:588.20,confirmMode:'AUTO',
+ {id:'4b6a80f5c1e94a2d9e77b0a3c8f61277',m:'A0101913',date:'2026-06-07',status:'PENDING_WITHDRAWAL_UNKNOWN',sa:588.20,confirmMode:'AUTO',
   withdrawals:[
-    {id:'WD2026060809150001',amount:588.20,fee:0,received:588.20,raw:'REJECTED',time:'2026-06-08 09:15',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'},
-    {id:'WD2026060810020002',amount:588.20,fee:0,received:588.20,raw:'EXCEPTION',time:'2026-06-08 10:02',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}
+    {id:'WD2026060809150001',commandId:'CMD100201',amount:588.20,fee:0,received:588.20,raw:'REJECTED',time:'2026-06-08 09:15',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'},
+    {id:'WD2026060810020002',commandId:'CMD100202',amount:588.20,fee:0,received:588.20,raw:'UNKNOWN',time:'2026-06-08 10:02',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}
   ],
-  ops:[{t:'2026-06-08 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-08 08:02',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-08 08:03',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-08 08:03',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-08 09:10',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-08 09:15',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060809150001',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-08 09:40',action:'Withdrawal rejected by B10 · withdrawalId WD2026060809150001',who:'system',k:'withdrawal'},{t:'2026-06-08 10:02',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060810020002',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-08 10:22',action:'Withdrawal submission result unknown — flagged as Exception · withdrawalId WD2026060810020002',who:'system',k:'withdrawal'}]},
+  ops:[{t:'2026-06-08 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-08 08:02',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-08 08:03',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-08 08:03',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-08 09:10',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-08 09:15',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060809150001',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-08 09:40',action:'Withdrawal rejected by B10 · withdrawalId WD2026060809150001',who:'system',k:'withdrawal'},{t:'2026-06-08 10:02',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · commandId CMD100202',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-08 10:22',action:'Withdrawal request timed out — no withdrawalId returned, status Unknown · commandId CMD100202',who:'system',k:'withdrawal'}]},
  {id:'5f13c204a9e64b0f8c22d9e0a71b6388',m:'A0103103',date:'2026-06-06',status:'PENDING_WITHDRAWAL_FAILED',sa:2140.00,confirmMode:'AUTO',
   withdrawals:[
-    {id:'WD2026060710000003',amount:2140.00,fee:0,received:2140.00,raw:'REJECTED',time:'2026-06-07 10:00',source:'GLDB Bank (Omnibus)',destination:'Skyline Commerce Ltd'}
+    {id:'WD2026060710000003',commandId:'CMD100301',amount:2140.00,fee:0,received:2140.00,raw:'REJECTED',time:'2026-06-07 10:00',source:'GLDB Bank (Omnibus)',destination:'Skyline Commerce Ltd'}
   ],
   ops:[{t:'2026-06-07 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-07 08:11',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-07 08:12',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-07 08:12',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-07 09:30',action:'Uploaded to SFTP',who:'ops.lee@metacomp.com',k:'upload'},{t:'2026-06-07 10:00',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Skyline Commerce Ltd) · withdrawalId WD2026060710000003',who:'ops.lee@metacomp.com',k:'withdrawal'},{t:'2026-06-07 10:24',action:'Withdrawal rejected by B10 · withdrawalId WD2026060710000003',who:'system',k:'withdrawal'}]},
  {id:'6a2d91e0b8f7401a9d55c3b0e4a89f10',m:'A0101913',date:'2026-06-05',status:'SETTLEMENT_NOTIFICATION_FAILED',sa:749.80,confirmMode:'AUTO',
-  withdrawals:[{id:'WD2026060611130007',amount:749.80,fee:0,received:749.80,raw:'COMPLETED',time:'2026-06-06 10:20',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}],
+  withdrawals:[{id:'WD2026060611130007',commandId:'CMD100401',amount:749.80,fee:0,received:749.80,raw:'COMPLETED',time:'2026-06-06 10:20',source:'GLDB Bank (Omnibus)',destination:'Acme Pay Pte Ltd (Alibaba)'}],
   ops:[{t:'2026-06-06 00:30',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-06 08:00',action:'Statement downloaded',who:'eddie.hui@metacomp.com',k:'system'},{t:'2026-06-06 08:01',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-06 08:01',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-06 09:10',action:'Uploaded to SFTP',who:'eddie.hui@metacomp.com',k:'upload'},{t:'2026-06-06 09:50',action:'Withdrawal submitted (Source: GLDB Bank (Omnibus) → Destination: Acme Pay Pte Ltd (Alibaba)) · withdrawalId WD2026060611130007',who:'eddie.hui@metacomp.com',k:'withdrawal'},{t:'2026-06-06 10:20',action:'Withdrawal completed · withdrawalId WD2026060611130007',who:'system',k:'withdrawal'},{t:'2026-06-06 10:21',action:'Settlement notification email failed to send',who:'system',k:'notify'}]},
  {id:'8e4f21a0b6c74d3e9a1f5c8d2b06e731',m:'A0102050',date:'2026-06-10',status:'UPLOADED',sa:265.00,confirmMode:'LEGACY',
   ops:[{t:'2026-06-11 00:31',action:'Statement generated',who:'system',k:'system'},{t:'2026-06-11 08:05',action:'Statement downloaded',who:'ops.lee@metacomp.com',k:'system'},{t:'2026-06-11 08:06',action:'Reconciliation succeeded',who:'system',k:'system'},{t:'2026-06-11 08:06',action:'Settlement file generated',who:'system',k:'system'},{t:'2026-06-11 09:15',action:'Uploaded to SFTP',who:'ops.lee@metacomp.com',k:'upload'}]},
@@ -469,6 +469,7 @@ const BACKEND_TO_FRONTEND={
   UPLOADED:'PENDING_SETTLEMENT',
   PENDING_SETTLEMENT_WITHDRAWAL:'WITHDRAWING',
   PENDING_WITHDRAWAL_FAILED:'WITHDRAWAL_FAILED',
+  PENDING_WITHDRAWAL_UNKNOWN:'WITHDRAWAL_UNKNOWN',
   SETTLED:'SETTLED',
   SETTLEMENT_NOTIFICATION_FAILED:'NOTIFICATION_FAILED',
   RECONCILE_FAILED:'RECONCILE_FAILED',
@@ -478,25 +479,25 @@ const STATUS_META={
   PENDING_UPLOAD:{label:'Pending Upload',cls:'b-pending'},
   PENDING_SETTLEMENT:{label:'Pending Settlement',cls:'b-uploaded'},
   WITHDRAWING:{label:'WITHDRAWING',cls:'b-review',loading:true},
-  WITHDRAWAL_FAILED:{label:'Withdrawal Failed',cls:'b-setfail'},
+  WITHDRAWAL_FAILED:{label:'Withdrawal Rejected',cls:'b-setfail'},
+  WITHDRAWAL_UNKNOWN:{label:'Withdrawal Unknown',cls:'b-pending'},
   SETTLED:{label:'Settled',cls:'b-settled'},
   NOTIFICATION_FAILED:{label:'Notification Failed',cls:'b-notifyfail'},
   RECONCILE_FAILED:{label:'Reconcile Failed',cls:'b-genfail'},
 };
-// Withdrawal Detail displayStatus is 5 values (not a 3-bucket collapse) — Exception is its own
-// actionable state, distinct from Failed/Rejected, per settlement-auto-withdrawal-frontend.md §4.2.
+// From WITHDRAWING there are exactly 3 possible outcomes for a withdrawal attempt: completed (→ Settled),
+// rejected (→ Withdrawal Rejected, retriable), or unknown/timed-out with no withdrawalId returned (→ Withdrawal
+// Unknown, needs Ops manual review). "processing" is the transient in-flight bucket while awaiting that outcome.
 const WD_BUCKET_META={
   processing:{label:'Processing',cls:'b-review',loading:true},
-  exception:{label:'Exception',cls:'b-setfail'},
-  failed:{label:'Failed',cls:'b-setfail'},
+  unknown:{label:'Unknown',cls:'b-pending'},
   rejected:{label:'Rejected',cls:'b-setfail'},
   completed:{label:'Completed',cls:'b-settled'},
 };
 function bucketOf(raw){
   switch(raw){
-    case 'CREATED': case 'SUBMITTED': return 'processing';
-    case 'EXCEPTION': return 'exception';
-    case 'FAILED': return 'failed';
+    case 'CREATED': return 'processing';
+    case 'UNKNOWN': return 'unknown';
     case 'REJECTED': return 'rejected';
     case 'COMPLETED': return 'completed';
     default: return 'processing';
@@ -504,13 +505,13 @@ function bucketOf(raw){
 }
 function latestWithdrawal(r){const l=r.withdrawals||[];return l.length?l[l.length-1]:null;}
 // withdrawalId shown on the main table/detail must NOT backfill from a rejected/failed historical attempt — blank once unbound.
-function mainWithdrawalId(r){if(r.status==='PENDING_WITHDRAWAL_FAILED')return null;const lw=latestWithdrawal(r);return lw?lw.id:(r.wid||null);}
+function mainWithdrawalId(r){if(r.status==='PENDING_WITHDRAWAL_FAILED'||r.status==='PENDING_WITHDRAWAL_UNKNOWN')return null;const lw=latestWithdrawal(r);return lw?lw.id:(r.wid||null);}
 const FILTER_GROUP={ALL:null,CREATING:['PENDING','STATEMENT_GENERATED','STATEMENT_DOWNLOADED','RECONCILE_SUCCESS'],PENDING_UPLOAD:['FILE_GENERATED'],PENDING_SETTLEMENT:['UPLOADED'],
-  WITHDRAWING:['PENDING_SETTLEMENT_WITHDRAWAL'],WITHDRAWAL_FAILED:['PENDING_WITHDRAWAL_FAILED'],SETTLED:['SETTLED'],NOTIFICATION_FAILED:['SETTLEMENT_NOTIFICATION_FAILED'],
+  WITHDRAWING:['PENDING_SETTLEMENT_WITHDRAWAL'],WITHDRAWAL_FAILED:['PENDING_WITHDRAWAL_FAILED'],WITHDRAWAL_UNKNOWN:['PENDING_WITHDRAWAL_UNKNOWN'],SETTLED:['SETTLED'],NOTIFICATION_FAILED:['SETTLEMENT_NOTIFICATION_FAILED'],
   RECONCILE_FAILED:['RECONCILE_FAILED']};
 const canDownloadStatement=s=>s!=='PENDING';
-const canDownloadSettlement=s=>['FILE_GENERATED','UPLOADED','PENDING_SETTLEMENT_WITHDRAWAL','PENDING_WITHDRAWAL_FAILED','SETTLED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
-const AMOUNT_VISIBLE=s=>['RECONCILE_SUCCESS','FILE_GENERATED','UPLOADED','PENDING_SETTLEMENT_WITHDRAWAL','PENDING_WITHDRAWAL_FAILED','SETTLED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
+const canDownloadSettlement=s=>['FILE_GENERATED','UPLOADED','PENDING_SETTLEMENT_WITHDRAWAL','PENDING_WITHDRAWAL_FAILED','PENDING_WITHDRAWAL_UNKNOWN','SETTLED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
+const AMOUNT_VISIBLE=s=>['RECONCILE_SUCCESS','FILE_GENERATED','UPLOADED','PENDING_SETTLEMENT_WITHDRAWAL','PENDING_WITHDRAWAL_FAILED','PENDING_WITHDRAWAL_UNKNOWN','SETTLED','SETTLEMENT_NOTIFICATION_FAILED'].includes(s);
 
 let sortDesc=true,curUploadId=null,curSettleId=null;
 
@@ -550,6 +551,7 @@ function actionsHTML(r){
       `<button class="btn btn-primary btn-sm" onclick="openSettle('${r.id}')">Confirm Settlement</button>`;
     case 'WITHDRAWING':return `<span style="color:var(--subtle)">—</span>`;
     case 'WITHDRAWAL_FAILED':return `<button class="btn btn-primary btn-sm" onclick="openSettle('${r.id}')">Confirm Settlement</button>`;
+    case 'WITHDRAWAL_UNKNOWN':return `<button class="btn btn-warning btn-sm" onclick="openDetail('${r.id}')">Update Withdrawal</button>`;
     case 'SETTLED':return `<span style="color:var(--subtle)">—</span>`;
     case 'NOTIFICATION_FAILED':return `<button class="btn btn-primary btn-sm" onclick="resendNotification('${r.id}')">Resend Notification</button>`;
     case 'RECONCILE_FAILED':return `<button class="btn btn-ghost btn-sm" onclick="recreateStatement('${r.id}')">Recreate</button><button class="btn btn-warning btn-sm" onclick="openUpload('${r.id}')">Upload</button>`;
@@ -757,50 +759,36 @@ function confirmSettle(){
   setTimeout(()=>{
     const {fee,received}=lookupFee(r.sa);
     const wid='WD'+now().replace(/[-: ]/g,'')+String(Math.floor(Math.random()*900+100));
+    const cmdId='CMD'+String(Math.floor(Math.random()*900000+100000));
     r.withdrawals=r.withdrawals||[];
-    r.withdrawals.push({id:wid,amount:r.sa,fee,received,raw:'CREATED',time:now(),source:sourceAcc.label,destination:destLabel});
+    r.withdrawals.push({id:wid,commandId:cmdId,amount:r.sa,fee,received,raw:'CREATED',time:now(),source:sourceAcc.label,destination:destLabel});
     r.status='PENDING_SETTLEMENT_WITHDRAWAL';
     r.ops.push({t:now(),action:`Withdrawal submitted (Source: ${sourceAcc.label} → Destination: ${destLabel}) · withdrawalId ${wid}`,who:CURRENT_USER,k:'withdrawal'});
     closeModal('settleModal');btn.innerHTML='Confirm Settlement';
     toast('Withdrawal submitted. Waiting for B10 review.');render();
-    resolveSubmission(r.id,wid);
+    resolveWithdrawal(r.id,wid);
   },1000);
 }
-// "提交三分类": submitting a withdrawal to Payment lands as明确成功(SUBMITTED)/明确失败(FAILED)/未知(EXCEPTION) —
-// EXCEPTION must never auto-retry, it waits for the Resolve action (see confirmResolve).
-function resolveSubmission(id,wid){
+// From WITHDRAWING there are exactly 3 possible outcomes for the withdrawal just submitted:
+// 1) reviewed and completed → Settled (then the usual notify success/fail sub-branch)
+// 2) reviewed and rejected → Withdrawal Rejected (retriable via Confirm Settlement)
+// 3) request timed out, no withdrawalId returned → Withdrawal Unknown (needs Ops manual Update Withdrawal)
+function resolveWithdrawal(id,wid){
   setTimeout(()=>{
     const r=STATEMENTS.find(x=>x.id===id);if(!r)return;
     const w=(r.withdrawals||[]).find(x=>x.id===wid);if(!w||w.raw!=='CREATED')return;
     const roll=Math.random();
-    if(roll<0.7){
-      w.raw='SUBMITTED';
-      simulateWithdrawalOutcome(id,wid);
-    }else if(roll<0.85){
-      w.raw='EXCEPTION';
-      r.ops.push({t:now(),action:'Withdrawal submission result unknown — flagged as Exception · withdrawalId '+wid,who:'system',k:'withdrawal'});
-      toast('Withdrawal submission result is unknown. Manual review required.','err');
+    if(roll<0.15){
+      w.raw='UNKNOWN';
+      r.status='PENDING_WITHDRAWAL_UNKNOWN';
+      toast('Withdrawal request timed out. Please check withdrawal status.','err');
       render();
-    }else{
-      w.raw='FAILED';
-      r.status='PENDING_WITHDRAWAL_FAILED';
-      r.ops.push({t:now(),action:'Withdrawal submission failed · withdrawalId '+wid,who:'system',k:'withdrawal'});
-      toast('Withdrawal submission failed. Please retry.','err');
-      render();
-    }
-  },1400);
-}
-function simulateWithdrawalOutcome(id,wid){
-  setTimeout(()=>{
-    const r=STATEMENTS.find(x=>x.id===id);
-    if(!r)return;
-    const w=(r.withdrawals||[]).find(x=>x.id===wid);
-    if(!w||w.raw!=='SUBMITTED')return;
-    if(Math.random()>0.75){
+    }else if(roll<0.35){
       w.raw='REJECTED';
       r.status='PENDING_WITHDRAWAL_FAILED';
       r.ops.push({t:now(),action:'Withdrawal rejected by B10 · withdrawalId '+wid,who:'system',k:'withdrawal'});
       toast('Withdrawal was rejected. Please review and retry.','err');
+      render();
     }else{
       w.raw='COMPLETED';
       r.ops.push({t:now(),action:'Withdrawal completed · withdrawalId '+wid,who:'system',k:'withdrawal'});
@@ -813,19 +801,20 @@ function simulateWithdrawalOutcome(id,wid){
         r.ops.push({t:now(),action:'Settlement notification email failed to send',who:'system',k:'notify'});
         toast('Withdrawal completed, but the notification email failed to send.','err');
       }
+      render();
     }
-    render();
-  },2500);
+  },2200);
 }
 function withdrawalListHTML(r){
   const list=(r.withdrawals||[]).slice().sort((a,b)=>b.time.localeCompare(a.time));
-  if(!list.length)return '<div style="color:var(--subtle);font-size:13px;margin-bottom:16px">No withdrawal has been created yet.</div>';
-  return `<table class="ops"><thead><tr><th>paymentCode</th><th style="text-align:right">Withdrawal Amount</th><th style="text-align:right">Fee Amount</th><th style="text-align:right">Amount Received</th><th>Status</th><th>Initiated Time</th></tr></thead><tbody>`+
+  const head=`<thead><tr><th>Command Id</th><th>paymentCode</th><th style="text-align:right">Withdrawal Amount</th><th style="text-align:right">Fee Amount</th><th style="text-align:right">Amount Received</th><th>Status</th><th>Initiated Time</th></tr></thead>`;
+  if(!list.length)return `<table class="ops">${head}<tbody><tr><td colspan="7" style="text-align:center;color:var(--subtle)">No withdrawal has been created yet.</td></tr></tbody></table>`;
+  return `<table class="ops">${head}<tbody>`+
     list.map(w=>{
       const bucket=bucketOf(w.raw),bm=WD_BUCKET_META[bucket];
       const badge=`<span class="badge ${bm.cls}">${bm.loading?'<span class="spin"></span>':'<span class="bdot"></span>'}${bm.label}</span>`;
-      const resolveBtn=bucket==='exception'?` <button class="btn-link" onclick="openResolve('${r.id}','${w.id}')">Resolve</button>`:'';
-      return `<tr><td class="mono">${w.id}</td>
+      const resolveBtn=bucket==='unknown'?` <button class="btn-link" onclick="openResolve('${r.id}','${w.id}')">Update</button>`:'';
+      return `<tr><td class="mono">${w.commandId||'—'}</td><td class="mono">${w.id}</td>
         <td class="mono" style="text-align:right">${w.amount.toFixed(2)} USD</td>
         <td class="mono" style="text-align:right">${w.fee.toFixed(2)} USD</td>
         <td class="mono" style="text-align:right">${w.received.toFixed(2)} USD</td>
@@ -838,11 +827,10 @@ function openResolve(settlementId,wid){
   curResolveSettlementId=settlementId;curResolveWid=wid;
   const r=STATEMENTS.find(x=>x.id===settlementId),w=(r.withdrawals||[]).find(x=>x.id===wid);
   document.getElementById('resolve-info').innerHTML=infoRows(r)+
-    `<div class="ir"><span class="k">paymentCode (this attempt)</span><span class="v mono">${w.id}</span></div>`+
+    `<div class="ir"><span class="k">Command Id (this attempt)</span><span class="v mono">${w.commandId||'—'}</span></div>`+
     `<div class="ir"><span class="k">Withdrawal Amount</span><span class="v mono">${w.amount.toFixed(2)} USD</span></div>`;
   document.querySelector('input[name="resolve-action"][value="BIND"]').checked=true;
   document.getElementById('resolve-paymentcode').value='';
-  document.getElementById('resolve-comment').value='';
   document.getElementById('resolve-alert').className='alert';
   onResolveActionChange();
   openModal('resolveModal');
@@ -850,6 +838,7 @@ function openResolve(settlementId,wid){
 function onResolveActionChange(){
   const action=document.querySelector('input[name="resolve-action"]:checked').value;
   document.getElementById('resolve-pc-field').style.display=action==='BIND'?'flex':'none';
+  document.getElementById('resolve-verify-note').style.display=action==='BIND'?'block':'none';
   syncResolveBtn();
 }
 function syncResolveBtn(){
@@ -858,23 +847,40 @@ function syncResolveBtn(){
 }
 function confirmResolve(){
   const action=document.querySelector('input[name="resolve-action"]:checked').value;
-  const pc=document.getElementById('resolve-paymentcode').value.trim(),comment=document.getElementById('resolve-comment').value.trim();
+  const pc=document.getElementById('resolve-paymentcode').value.trim();
   if(action==='BIND'&&!pc)return;
   const r=STATEMENTS.find(x=>x.id===curResolveSettlementId),w=(r.withdrawals||[]).find(x=>x.id===curResolveWid),btn=document.getElementById('resolve-confirm');
+  const alertEl=document.getElementById('resolve-alert');alertEl.className='alert';
   btn.disabled=true;btn.innerHTML='<span class="spin"></span> Submitting…';
   setTimeout(()=>{
     if(action==='BIND'){
-      w.raw='SUBMITTED';
-      r.ops.push({t:now(),action:`Withdrawal order re-bound to payment code ${pc} after manual review`+(comment?' · '+comment:''),who:CURRENT_USER,k:'withdrawal'});
-      toast('Marked as succeeded. Continuing to track via Payment.');
-      simulateWithdrawalOutcome(r.id,w.id);
+      // System-side verification: does the withdrawal Ops found actually belong to this settlement
+      // (merchant ID / amount / reference match)? Reject the match if it doesn't.
+      const matched=Math.random()>0.2;
+      if(!matched){
+        alertEl.className='alert err';
+        alertEl.innerText='Verification failed: merchant ID / amount / reference does not match this settlement. Please re-check the withdrawal ID and try again.';
+        btn.disabled=false;btn.innerHTML='Confirm';
+        return;
+      }
+      w.raw='COMPLETED';w.id=pc;
+      r.ops.push({t:now(),action:`Withdrawal manually confirmed as succeeded (withdrawalId ${pc}, merchant/amount/reference verified)`,who:CURRENT_USER,k:'withdrawal'});
+      if(Math.random()>0.2){
+        r.status='SETTLED';r.settledDate=now().slice(0,10);
+        r.ops.push({t:now(),action:'Settlement notification email sent',who:'system',k:'notify'});
+        toast('Withdrawal confirmed. Merchant notified. Statement settled.');
+      }else{
+        r.status='SETTLEMENT_NOTIFICATION_FAILED';
+        r.ops.push({t:now(),action:'Settlement notification email failed to send',who:'system',k:'notify'});
+        toast('Withdrawal confirmed, but the notification email failed to send.','err');
+      }
     }else{
-      w.raw='FAILED';
+      w.raw='REJECTED';
       r.status='PENDING_WITHDRAWAL_FAILED';
-      r.ops.push({t:now(),action:'Withdrawal marked as failed after manual review'+(comment?' · '+comment:''),who:CURRENT_USER,k:'withdrawal'});
+      r.ops.push({t:now(),action:'Withdrawal manually marked as failed after review',who:CURRENT_USER,k:'withdrawal'});
       toast('Marked as failed. A new withdrawal can now be created.','err');
     }
-    closeModal('resolveModal');btn.disabled=false;btn.innerHTML='Resolve';
+    closeModal('resolveModal');btn.disabled=false;btn.innerHTML='Confirm';
     render();
     if(document.getElementById('detailModal').classList.contains('open'))openDetail(r.id);
   },900);
@@ -903,7 +909,9 @@ function openDetail(id){
     (lw?`<div class="ir"><span class="k">Destination</span><span class="v">${lw.destination}</span></div>`:'')+
     (r.settledDate?`<div class="ir"><span class="k">Settlement Date</span><span class="v">${r.settledDate}</span></div>`:'');
   document.getElementById('dt-wd').innerHTML=withdrawalListHTML(r);
-  const log=(r.ops||[]).filter(o=>o.k==='upload'||o.k==='settle'||o.k==='recreate'||o.k==='withdrawal'||o.k==='notify').sort((a,b)=>a.t.localeCompare(b.t));
+  // Operation history only shows manual (Ops-triggered) actions: Upload, Confirm Settlement, Update Withdrawal —
+  // system-generated events (statement lifecycle, auto withdrawal outcomes, notification emails) are excluded.
+  const log=(r.ops||[]).filter(o=>o.k==='upload'||o.k==='settle'||(o.k==='withdrawal'&&o.who!=='system')).sort((a,b)=>a.t.localeCompare(b.t));
   document.getElementById('dt-ops').innerHTML=log.length?
     `<table class="ops"><thead><tr><th style="width:140px">Time</th><th>Action</th><th style="width:220px">Operator</th></tr></thead><tbody>`+
     log.map(o=>`<tr><td class="mono">${o.t}</td><td>${o.action}</td><td class="${o.who==='system'?'who-sys':'mono'}">${o.who==='system'?'system':o.who}</td></tr>`).join('')+
