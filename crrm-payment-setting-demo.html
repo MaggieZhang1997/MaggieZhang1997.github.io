@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CRRM · Payment Setting</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  /* ===== metacomp-ds aligned tokens (skills/admin-ops-console/templates/skin-metacomp.css) ===== */
+  :root{
+    --bg:#f9f9f7; --surface:#f9f9f7; --surface-overlay:#fcfcfc; --fill:#ededed;
+    --fill-hover:#fcfcfc; --item-hover:#f1eef7; --surface-glass:rgba(249,249,247,.85);
+    --surface-disabled:#d6d6d6;
+    --border:#ededed; --border-strong:#d6d6d6;
+    --text:#1b1b1b; --muted:#595959; --subtle:#969696; --disabled:#757575; --on-primary:#fcfcfc;
+    --accent:#381e72; --accent-hover:#6750a4; --accent-subtle:#f6edff; --accent-text:#4f378b;
+    --success:#23b12f; --success-bg:#dcf3de; --success-border:#c0e9c3; --success-text:#17741f;
+    --danger:#f53d3d; --danger-bg:#feefef; --danger-border:#fcc7c7; --danger-text:#cb3232;
+    --warning:#ee982f; --warning-bg:#fffcf9; --warning-border:#ffdcbd; --warning-text:#8a5100;
+    --info:#4b82f1; --info-bg:#f1f5fe; --info-border:#ccdbfb; --info-text:#3e6bc8;
+    --overlay-backdrop:rgba(0,0,0,.45);
+    --shadow-sm:0 1px 3px rgba(0,0,0,.06);
+    --shadow-lg:0 8px 24px rgba(0,0,0,.10),0 2px 6px rgba(0,0,0,.06);
+    --shadow-overlay:0 16px 48px rgba(0,0,0,.14),0 4px 12px rgba(0,0,0,.08);
+    --header-h:60px; --sidebar-w:220px;
+    --radius-sm:4px; --radius-md:8px; --radius-lg:12px; --radius-full:1000px;
+    --topbar-text:var(--accent); --topbar-muted:var(--subtle);
+  }
+
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'Poppins',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    font-size:14px;color:var(--text);background:var(--bg);line-height:1.5}
+  button{font-family:inherit;cursor:pointer}
+  .mono{font-family:"SF Mono",Menlo,Consolas,monospace;font-size:12.5px}
+
+  /* ---- shell ---- */
+  .topbar{height:var(--header-h);background:var(--surface-glass);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;padding:0 22px;
+    position:fixed;top:0;left:0;right:0;z-index:100}
+  .brand{display:flex;align-items:center;gap:9px;font-weight:700;font-size:16px;color:var(--topbar-text)}
+  .brand .dot{width:22px;height:22px;border-radius:var(--radius-full);background:var(--accent);display:inline-block}
+  .topbar .crumb{margin-left:18px;color:var(--topbar-muted);font-size:13px}
+  .topbar .right{margin-left:auto;display:flex;align-items:center;gap:12px;color:var(--topbar-muted);font-size:13px}
+
+  .sidebar{width:var(--sidebar-w);position:fixed;top:var(--header-h);left:0;bottom:0;
+    background:var(--surface);border-right:1px solid var(--border);overflow-y:auto;padding:14px 12px}
+  .nav-group{color:var(--subtle);font-size:11px;letter-spacing:.5px;text-transform:uppercase;padding:14px 10px 6px}
+  .nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);
+    color:var(--muted);font-size:14px;cursor:pointer;margin-bottom:2px}
+  .nav-item:hover{background:var(--item-hover);color:var(--text)}
+  .nav-item.active{background:var(--accent-subtle);color:var(--accent-text);font-weight:600}
+
+  .main{margin-left:var(--sidebar-w);margin-top:var(--header-h);padding:26px 40px 60px;max-width:1240px}
+  .page-title{font-size:22px;font-weight:700;margin-bottom:4px}
+  .page-sub{color:var(--muted);font-size:13px;margin-bottom:22px}
+
+  /* ---- product line-tabs ---- */
+  .line-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:18px}
+  .line-tab{height:40px;padding:0 16px;display:flex;align-items:center;font-size:14px;color:var(--muted);
+    cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .1s}
+  .line-tab:hover{color:var(--text)}
+  .line-tab.active{color:var(--accent-text);font-weight:600;border-bottom-color:var(--accent)}
+
+  /* ---- refund-type pill-tabs ---- */
+  .pill-tabs-row{display:flex;align-items:center;gap:12px;margin-bottom:18px}
+  .pill-tabs-row .lbl{font-size:12.5px;color:var(--muted);font-weight:500}
+  .pill-tabs{display:inline-flex;padding:4px;border-radius:var(--radius-full);background:var(--fill);gap:2px}
+  .pill-tab{height:32px;padding:0 14px;border-radius:var(--radius-full);font-size:13px;color:var(--muted);
+    display:flex;align-items:center;cursor:pointer;transition:all .12s}
+  .pill-tab:hover{color:var(--text)}
+  .pill-tab.active{background:var(--surface-overlay);color:var(--text);font-weight:600;box-shadow:var(--shadow-sm)}
+
+  /* ---- filter bar ---- */
+  .filterbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;background:var(--surface-overlay);
+    border:1px solid var(--border);border-radius:var(--radius-md);padding:16px 18px;box-shadow:var(--shadow-sm);margin-bottom:16px}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:12px;color:var(--muted);font-weight:500}
+  .ctrl{height:40px;width:360px;padding:0 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+    background:var(--fill);color:var(--text);font-size:13.5px;font-family:inherit;outline:none;transition:border-color .12s,background .12s}
+  .ctrl:focus{border-color:var(--accent);background:var(--surface-overlay)}
+  .ctrl::placeholder{color:var(--subtle)}
+  .field .hint{font-size:11.5px;color:var(--subtle);margin-top:2px;max-width:460px}
+  .filter-actions{display:flex;gap:10px;margin-left:auto}
+
+  /* ---- buttons (metacomp-ds atoms/button.md) ---- */
+  .btn{height:40px;padding:0 18px;border-radius:var(--radius-full);border:1px solid transparent;font-size:13.5px;
+    font-weight:600;display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-family:inherit;transition:all .12s}
+  .btn-primary{background:var(--accent);color:var(--on-primary)}
+  .btn-primary:hover{background:var(--accent-hover)}
+  .btn-primary[disabled]{background:var(--surface-disabled);color:var(--disabled);cursor:not-allowed}
+  .btn-secondary{background:transparent;color:var(--accent-text);border-color:var(--accent)}
+  .btn-secondary:hover{background:var(--accent-subtle)}
+  .btn-ghost{background:transparent;color:var(--accent-text);border-color:var(--border-strong)}
+  .btn-ghost:hover{background:var(--item-hover)}
+  .btn-tertiary{background:transparent;color:var(--muted);border:none;font-weight:500}
+  .btn-tertiary:hover{color:var(--text)}
+  .btn-danger-line{background:transparent;color:var(--danger-text);border-color:var(--danger-border)}
+  .btn-danger-line:hover{background:var(--danger-bg)}
+  .btn-sm{height:32px;padding:0 14px;font-size:12.5px}
+  .btn-xs{height:28px;padding:0 10px;font-size:12px;border-radius:var(--radius-sm)}
+
+  /* ---- badges ---- */
+  .badge{display:inline-flex;align-items:center;gap:6px;height:24px;padding:0 10px;border-radius:var(--radius-full);
+    font-size:12px;font-weight:600;border:1px solid}
+  .badge .bdot{width:6px;height:6px;border-radius:50%}
+  .b-info{background:var(--info-bg);color:var(--info-text);border-color:var(--info-border)}
+  .b-info .bdot{background:var(--info)}
+  .b-success{background:var(--success-bg);color:var(--success-text);border-color:var(--success-border)}
+  .b-success .bdot{background:var(--success)}
+  .b-warning{background:var(--warning-bg);color:var(--warning-text);border-color:var(--warning-border)}
+  .b-warning .bdot{background:var(--warning)}
+
+  /* ---- scope banner ---- */
+  .scope-banner{display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:var(--radius-md);
+    background:var(--accent-subtle);margin-bottom:16px;font-size:13px;color:var(--text)}
+  .scope-banner .txt{flex:1}
+  .scope-banner strong{font-weight:600}
+
+  /* ---- config card ---- */
+  .config-card{background:var(--surface-overlay);border:1px solid var(--border);border-radius:var(--radius-md);
+    box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:16px}
+  .config-card .card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+  .config-card .card-head .title{font-size:14px;font-weight:600}
+  .card-body{padding:6px 18px 4px}
+  .row-empty{padding:24px 0;text-align:center;color:var(--subtle);font-size:13px}
+
+  .currency-row{padding:14px 0;border-bottom:1px solid var(--border)}
+  .currency-row:last-child{border-bottom:none}
+  .row-main{display:flex;align-items:flex-end;gap:12px}
+  .row-field{display:flex;flex-direction:column;gap:5px}
+  .row-field label{font-size:11px;color:var(--muted);font-weight:500}
+  .cur-select{height:40px;width:260px;padding:0 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+    background:var(--fill);color:var(--text);font-size:13px;font-weight:600;font-family:inherit;outline:none}
+  .cur-select:focus{border-color:var(--accent)}
+  .amt-wrap{position:relative}
+  .amt-wrap input{height:40px;width:220px;padding:0 56px 0 12px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+    background:var(--fill);color:var(--text);font-size:13.5px;font-family:inherit;outline:none}
+  .amt-wrap input:focus{border-color:var(--accent);background:var(--surface-overlay)}
+  .amt-wrap input.err{border-color:var(--danger)}
+  .amt-wrap input:disabled,.cur-select:disabled{background:var(--surface-disabled);color:var(--disabled);cursor:not-allowed}
+  .amt-wrap .unit{position:absolute;right:12px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--subtle);pointer-events:none}
+  .row-spacer{flex:1}
+  .row-del{width:36px;height:36px;border-radius:var(--radius-sm);border:1px solid transparent;background:transparent;
+    color:var(--subtle);font-size:16px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+  .row-del:hover{background:var(--danger-bg);color:var(--danger-text)}
+  .row-del[disabled]{visibility:hidden}
+
+  .currency-row.other-row{background:var(--fill-hover);margin:0 -18px;padding:14px 18px;border-bottom:none}
+  .other-chip{height:40px;width:260px;padding:0 12px;border:1px dashed var(--border-strong);border-radius:var(--radius-sm);
+    background:var(--fill);display:flex;align-items:baseline;gap:8px;font-size:13px;font-weight:600;color:var(--text)}
+  .other-chip-sub{font-size:11px;font-weight:500;color:var(--subtle)}
+  .row-pinned{font-size:11px;color:var(--subtle);border:1px solid var(--border);border-radius:var(--radius-full);
+    padding:5px 12px;white-space:nowrap;flex-shrink:0}
+
+  .chain-toggle{margin-top:10px;font-size:12.5px;color:var(--accent-text);cursor:pointer;display:inline-flex;align-items:center;gap:5px}
+  .chain-toggle:hover{color:var(--accent-hover)}
+  .chain-panel{margin-top:10px;padding:12px 14px;background:var(--fill);border-radius:var(--radius-sm)}
+  .chain-row{display:flex;align-items:flex-end;gap:10px;margin-bottom:10px}
+  .chain-row:last-child{margin-bottom:0}
+  .chain-select{height:36px;width:200px;padding:0 8px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+    background:var(--surface-overlay);color:var(--text);font-size:12.5px;font-family:inherit;outline:none}
+  .chain-amt input{height:36px;width:200px;padding:0 48px 0 10px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);
+    background:var(--surface-overlay);color:var(--text);font-size:12.5px;font-family:inherit;outline:none}
+  .chain-amt input.err{border-color:var(--danger)}
+  .chain-amt{position:relative}
+  .chain-amt .unit{position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:11px;color:var(--subtle);pointer-events:none}
+  .chain-del{width:30px;height:30px;border-radius:var(--radius-sm);border:none;background:transparent;color:var(--subtle);font-size:14px}
+  .chain-del:hover{background:var(--danger-bg);color:var(--danger-text)}
+  .chain-add{font-size:12px;color:var(--accent-text);cursor:pointer;display:inline-flex;align-items:center;gap:4px}
+  .chain-add:hover{color:var(--accent-hover)}
+  .chain-fallback-note{font-size:11.5px;color:var(--subtle);margin-top:2px}
+
+  .add-row{padding:12px 0;border-top:1px dashed var(--border);text-align:left}
+  .add-row .link{font-size:13px;color:var(--accent-text);cursor:pointer;font-weight:600;display:inline-flex;align-items:center;gap:6px}
+  .add-row .link:hover{color:var(--accent-hover)}
+
+  .card-foot{padding:14px 18px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;
+    background:var(--fill-hover)}
+  .card-foot .meta{font-size:11.5px;color:var(--subtle)}
+  .card-foot .actions{display:flex;gap:10px}
+
+  /* ---- modal ---- */
+  .backdrop{position:fixed;inset:0;background:var(--overlay-backdrop);display:none;align-items:center;justify-content:center;z-index:200}
+  .backdrop.open{display:flex}
+  .modal{background:var(--surface-overlay);border-radius:var(--radius-lg);box-shadow:var(--shadow-overlay);
+    width:480px;max-width:92vw;max-height:88vh;overflow:auto;padding:24px}
+  .modal h3{font-size:17px;font-weight:700;margin-bottom:14px}
+  .modal .lead{color:var(--text);font-size:13.5px;background:var(--accent-subtle);border-radius:var(--radius-md);
+    padding:12px 14px;margin-bottom:16px;line-height:1.55}
+  .modal .lead.warn{background:var(--warning-bg);border:1px solid var(--warning-border);color:var(--warning-text)}
+  .summary-table{width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:8px}
+  .summary-table th{text-align:left;padding:7px 10px;background:var(--fill);color:var(--muted);font-weight:600;
+    border-bottom:1px solid var(--border);font-size:11.5px}
+  .summary-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text)}
+  .summary-table tr:last-child td{border-bottom:none}
+  .modal .foot{display:flex;justify-content:flex-end;gap:10px;margin-top:18px}
+
+  /* ---- toast ---- */
+  .toast-wrap{position:fixed;top:72px;right:24px;z-index:300;display:flex;flex-direction:column;gap:10px}
+  .toast{background:var(--surface-overlay);border:1px solid var(--success-border);border-left:4px solid var(--success);
+    border-radius:var(--radius-md);box-shadow:var(--shadow-lg);padding:12px 16px;font-size:13.5px;min-width:260px;animation:slidein .25s ease}
+  .toast.err{border-color:var(--danger-border);border-left-color:var(--danger)}
+  @keyframes slidein{from{transform:translateX(20px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand"><span class="dot"></span> CRRM</div>
+  <div class="crumb">Payment Setting</div>
+  <div class="right"><span>Ops · ops_zhang</span></div>
+</div>
+
+<aside class="sidebar">
+  <div class="nav-group">Checkout</div>
+  <div class="nav-item">Checkout Refund Review</div>
+  <div class="nav-item active">Payment Setting</div>
+</aside>
+
+<main class="main">
+  <div class="page-title">Payment Setting</div>
+  <div class="page-sub">按币种维护最小发起金额：默认对全部商户生效，也可为单个商户单独配置。</div>
+
+  <!-- Product line-tabs -->
+  <div class="line-tabs">
+    <div class="line-tab active" id="tab-CHECKOUT" onclick="selectProduct('CHECKOUT')">Checkout</div>
+    <div class="line-tab" id="tab-CHECKOUT_REFUND" onclick="selectProduct('CHECKOUT_REFUND')">Checkout Refund</div>
+  </div>
+
+  <!-- Refund type pill-tabs (Checkout Refund only) -->
+  <div class="pill-tabs-row" id="refundTypeRow" style="display:none">
+    <span class="lbl">Refund Type</span>
+    <div class="pill-tabs">
+      <div class="pill-tab active" id="rt-REFUND" onclick="selectRefundType('REFUND')">Refund</div>
+      <div class="pill-tab" id="rt-RISK_REFUND" onclick="selectRefundType('RISK_REFUND')">Risk Refund</div>
+      <div class="pill-tab" id="rt-VOID" onclick="selectRefundType('VOID')">Void</div>
+    </div>
+  </div>
+
+  <!-- Merchant filter bar -->
+  <div class="filterbar">
+    <div class="field">
+      <label>Merchant Code</label>
+      <input class="ctrl" id="f-merchant" type="text" placeholder="e.g. MERCH_001" onkeydown="if(event.key==='Enter')doSearch()">
+      <div class="hint">试试 MERCH_001（Checkout 已有特殊配置）、MERCH_002（Checkout Refund · Refund 已有特殊配置），或任意其他代码（无特殊配置）。</div>
+    </div>
+    <div class="filter-actions">
+      <button class="btn btn-ghost" onclick="doReset()">Reset</button>
+      <button class="btn btn-primary" onclick="doSearch()">Search</button>
+    </div>
+  </div>
+
+  <!-- Scope banner -->
+  <div class="scope-banner" id="scopeBanner"></div>
+
+  <!-- Config card -->
+  <div class="config-card">
+    <div class="card-head">
+      <span class="title" id="cardTitle">Default Configuration</span>
+      <span id="cardBadge"></span>
+    </div>
+    <div class="card-body" id="rowsContainer"></div>
+    <div class="add-row" id="addRowWrap">
+      <span class="link" onclick="addCurrencyRow()">+ Add Currency</span>
+    </div>
+    <div class="card-foot">
+      <span class="meta" id="cardMeta">Updated by ops_zhang · 2026-08-18 11:02</span>
+      <div class="actions" id="footActions"></div>
+    </div>
+  </div>
+</main>
+
+<!-- Save confirmation modal -->
+<div class="backdrop" id="saveModal">
+  <div class="modal">
+    <h3>Confirm Save</h3>
+    <div class="lead" id="saveModalLead"></div>
+    <table class="summary-table" id="saveModalTable"></table>
+    <div class="foot">
+      <button class="btn btn-ghost" onclick="closeModal('saveModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmSave()">Confirm Save</button>
+    </div>
+  </div>
+</div>
+
+<!-- Clear config confirmation modal -->
+<div class="backdrop" id="clearModal">
+  <div class="modal">
+    <h3>Clear Merchant-Specific Config</h3>
+    <div class="lead warn" id="clearModalLead"></div>
+    <div class="foot">
+      <button class="btn btn-ghost" onclick="closeModal('clearModal')">Cancel</button>
+      <button class="btn btn-danger-line" onclick="confirmClear()">Clear Config</button>
+    </div>
+  </div>
+</div>
+
+<!-- Unsaved-draft confirmation modal -->
+<div class="backdrop" id="discardModal">
+  <div class="modal">
+    <h3>Discard Unsaved Changes?</h3>
+    <div class="lead warn">当前修改未保存，切换后将丢弃这些改动。</div>
+    <div class="foot">
+      <button class="btn btn-ghost" onclick="closeModal('discardModal')">Cancel</button>
+      <button class="btn btn-danger-line" onclick="confirmDiscard()">Discard &amp; Continue</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast-wrap" id="toasts"></div>
+
+<script>
+/* ============ Reference data ============ */
+const CURRENCIES = {
+  USDT:   { label:'USDT · Tether',              chains:['TRC20','ERC20','BEP20'], fiat:false },
+  USDC:   { label:'USDC · USD Coin',            chains:['TRC20','ERC20'],         fiat:false },
+  FDUSD:  { label:'FDUSD · First Digital USD',  chains:['ERC20','BEP20'],         fiat:false },
+  RLUSD:  { label:'RLUSD · Ripple USD',         chains:['ERC20','XRPL'],          fiat:false },
+  USD:    { label:'USD · US Dollar',            chains:[],                        fiat:true },
+  SGD:    { label:'SGD · Singapore Dollar',     chains:[],                        fiat:true },
+};
+const OTHER = 'OTHER'; // pinned fallback row — not part of CURRENCIES, never addable/removable via the dropdown
+const REFUND_TYPE_LABEL = { REFUND:'Refund', RISK_REFUND:'Risk Refund', VOID:'Void' };
+
+/* ============ Mock backend store ============ */
+/* Every list below carries its own OTHER row explicitly for realism; ensureOtherRow() also
+   auto-injects one on load as a defensive fallback (Other must never be absent or deletable). */
+const DEFAULTS = {
+  CHECKOUT: [
+    { currency:'USDT',  minAmount:'5.00' },
+    { currency:'USDC',  minAmount:'5.00' },
+    { currency:'FDUSD', minAmount:'5.00' },
+    { currency:'RLUSD', minAmount:'5.00' },
+    { currency:'USD',   minAmount:'5.00' },
+    { currency:'SGD',   minAmount:'7.00' },
+    { currency:OTHER,   minAmount:'5.00' },
+  ],
+  CHECKOUT_REFUND: {
+    REFUND: [
+      { currency:'USDT', minAmount:'1.00', chainOverrides:[{chain:'TRC20', minAmount:'0.50'}] },
+      { currency:'USDC', minAmount:'1.00', chainOverrides:[] },
+      { currency:'USD',  minAmount:'1.00' },
+      { currency:OTHER,  minAmount:'1.00' },
+    ],
+    RISK_REFUND: [
+      { currency:'USDT', minAmount:'2.00', chainOverrides:[] },
+      { currency:OTHER,  minAmount:'2.00' },
+    ],
+    VOID: [
+      { currency:'USDT',  minAmount:'0.50', chainOverrides:[] },
+      { currency:'FDUSD', minAmount:'0.50', chainOverrides:[] },
+      { currency:OTHER,   minAmount:'0.50' },
+    ],
+  },
+};
+
+const MERCHANT_OVERRIDES = {
+  CHECKOUT: {
+    MERCH_001: [
+      { currency:'USDT',  minAmount:'10.00' },
+      { currency:'RLUSD', minAmount:'10.00' },
+      { currency:OTHER,   minAmount:'15.00' },
+    ],
+  },
+  CHECKOUT_REFUND: {
+    REFUND: {
+      MERCH_002: [
+        { currency:'USDT', minAmount:'3.00', chainOverrides:[{chain:'ERC20', minAmount:'5.00'}] },
+        { currency:OTHER,  minAmount:'4.00' },
+      ],
+    },
+    RISK_REFUND: {},
+    VOID: {},
+  },
+};
+
+/* Fiat (USD/SGD) is only meaningful where a fiat balance actually funds the transaction:
+   Checkout orders, and standard Refund (merchant USD balance). Risk Refund / Void pay out of
+   crypto-only wallets (high-risk staging / on-hold), so fiat is not offered there. */
+function fiatEligible(){
+  return product === 'CHECKOUT' || (product === 'CHECKOUT_REFUND' && refundType === 'REFUND');
+}
+function eligibleCurrencyCodes(){
+  return Object.keys(CURRENCIES).filter(c => !CURRENCIES[c].fiat || fiatEligible());
+}
+function ensureOtherRow(rows){
+  if(!rows.some(r=>r.currency===OTHER)) rows.push({ currency:OTHER, minAmount:'' });
+  return rows;
+}
+
+/* ============ Page state ============ */
+let product = 'CHECKOUT';        // CHECKOUT | CHECKOUT_REFUND
+let refundType = 'REFUND';       // only meaningful for CHECKOUT_REFUND
+let merchantCode = '';           // '' => S1 (default-only view)
+let panelState = 'S1';           // S1 | S2 | S3 | S4
+let draft = [];                  // working copy of current currency rows
+let pendingNav = null;           // deferred action when a discard-confirm is needed
+
+function clone(x){ return JSON.parse(JSON.stringify(x)); }
+function hasChains(){ return product === 'CHECKOUT_REFUND'; }
+
+function prepRows(rows){
+  rows.forEach(r=>{ if(r.chainOverrides === undefined) return; r._expanded = r.chainOverrides.length > 0; });
+  return rows;
+}
+function getDefault(){
+  const raw = hasChains() ? clone(DEFAULTS.CHECKOUT_REFUND[refundType]) : clone(DEFAULTS.CHECKOUT);
+  return ensureOtherRow(prepRows(raw));
+}
+function getMerchantOverride(code){
+  let raw;
+  if(hasChains()){
+    const bucket = MERCHANT_OVERRIDES.CHECKOUT_REFUND[refundType];
+    raw = bucket && bucket[code] ? clone(bucket[code]) : null;
+  } else {
+    raw = MERCHANT_OVERRIDES.CHECKOUT[code] ? clone(MERCHANT_OVERRIDES.CHECKOUT[code]) : null;
+  }
+  return raw ? ensureOtherRow(prepRows(raw)) : null;
+}
+function saveDefault(rows){
+  if(hasChains()) DEFAULTS.CHECKOUT_REFUND[refundType] = clone(rows);
+  else DEFAULTS.CHECKOUT = clone(rows);
+}
+function saveMerchantOverride(code, rows){
+  if(hasChains()) MERCHANT_OVERRIDES.CHECKOUT_REFUND[refundType][code] = clone(rows);
+  else MERCHANT_OVERRIDES.CHECKOUT[code] = clone(rows);
+}
+function deleteMerchantOverride(code){
+  if(hasChains()) delete MERCHANT_OVERRIDES.CHECKOUT_REFUND[refundType][code];
+  else delete MERCHANT_OVERRIDES.CHECKOUT[code];
+}
+
+/* ============ Load / navigation ============ */
+function loadForMerchant(code){
+  merchantCode = code;
+  const ov = getMerchantOverride(code);
+  if(ov){ draft = ov; panelState='S4'; }
+  else { draft = getDefault(); panelState='S2'; }
+  renderAll();
+}
+function loadDefaultOnly(){
+  merchantCode = '';
+  draft = getDefault();
+  panelState = 'S1';
+  document.getElementById('f-merchant').value = '';
+  renderAll();
+}
+
+function guardIfDraft(action){
+  if(panelState === 'S3'){
+    pendingNav = action;
+    openModal('discardModal');
+    return true;
+  }
+  return false;
+}
+function confirmDiscard(){
+  closeModal('discardModal');
+  const a = pendingNav; pendingNav = null;
+  if(a) a();
+}
+
+function selectProduct(p){
+  if(p === product) return;
+  const run = () => {
+    product = p;
+    document.getElementById('tab-CHECKOUT').classList.toggle('active', p==='CHECKOUT');
+    document.getElementById('tab-CHECKOUT_REFUND').classList.toggle('active', p==='CHECKOUT_REFUND');
+    document.getElementById('refundTypeRow').style.display = (p==='CHECKOUT_REFUND') ? 'flex' : 'none';
+    refundType = 'REFUND';
+    updateRefundTypeTabs();
+    if(merchantCode) loadForMerchant(merchantCode);
+    else loadDefaultOnly();
+  };
+  if(guardIfDraft(run)) return;
+  run();
+}
+function updateRefundTypeTabs(){
+  ['REFUND','RISK_REFUND','VOID'].forEach(t=>{
+    document.getElementById('rt-'+t).classList.toggle('active', t===refundType);
+  });
+}
+function selectRefundType(t){
+  if(t === refundType || product !== 'CHECKOUT_REFUND') return;
+  const run = () => {
+    refundType = t;
+    updateRefundTypeTabs();
+    if(merchantCode) loadForMerchant(merchantCode);
+    else loadDefaultOnly();
+  };
+  if(guardIfDraft(run)) return;
+  run();
+}
+
+function doSearch(){
+  const code = document.getElementById('f-merchant').value.trim();
+  if(!code){ toast('Please enter a merchant code', 'err'); return; }
+  const run = () => loadForMerchant(code);
+  if(guardIfDraft(run)) return;
+  run();
+}
+function doReset(){
+  const run = () => loadDefaultOnly();
+  if(guardIfDraft(run)) return;
+  run();
+}
+
+/* ============ Row editing (mutate `draft`, then renderAll) ============ */
+function usedCurrencies(){ return draft.map(r=>r.currency); }
+function nextFreeCurrency(){
+  const used = usedCurrencies();
+  return eligibleCurrencyCodes().find(c => !used.includes(c));
+}
+function addCurrencyRow(){
+  const c = nextFreeCurrency();
+  if(!c) return;
+  const row = { currency:c, minAmount:'' };
+  if(hasChains()) row.chainOverrides = [];
+  row._expanded = false;
+  const otherIdx = draft.findIndex(r=>r.currency===OTHER);
+  if(otherIdx === -1) draft.push(row); else draft.splice(otherIdx, 0, row);
+  renderAll();
+}
+function removeCurrencyRow(idx){
+  if(draft[idx].currency === OTHER) return; // pinned fallback row, never removable
+  draft.splice(idx,1);
+  renderAll();
+}
+function onCurrencyChange(idx, val){
+  draft[idx].currency = val;
+  if(hasChains()) draft[idx].chainOverrides = [];
+  renderAll();
+}
+function onAmountInput(idx, val){
+  draft[idx].minAmount = val;
+}
+function toggleChainPanel(idx){
+  draft[idx]._expanded = !draft[idx]._expanded;
+  renderAll();
+}
+function usedChains(idx){ return draft[idx].chainOverrides.map(c=>c.chain); }
+function nextFreeChain(idx){
+  const all = CURRENCIES[draft[idx].currency].chains;
+  const used = usedChains(idx);
+  return all.find(ch => !used.includes(ch));
+}
+function addChainRow(idx){
+  const ch = nextFreeChain(idx);
+  if(!ch) return;
+  draft[idx].chainOverrides.push({ chain:ch, minAmount:'' });
+  draft[idx]._expanded = true;
+  renderAll();
+}
+function removeChainRow(idx, cidx){
+  draft[idx].chainOverrides.splice(cidx,1);
+  renderAll();
+}
+function onChainChange(idx, cidx, val){
+  draft[idx].chainOverrides[cidx].chain = val;
+  renderAll();
+}
+function onChainAmountInput(idx, cidx, val){
+  draft[idx].chainOverrides[cidx].minAmount = val;
+}
+
+/* ============ Copy / Cancel draft / Clear ============ */
+function doCopy(){
+  panelState = 'S3';
+  renderAll();
+}
+function doCancelDraft(){
+  draft = getDefault();
+  panelState = 'S2';
+  renderAll();
+}
+function openClearConfirm(){
+  const scope = hasChains() ? `${product} · ${REFUND_TYPE_LABEL[refundType]}` : product;
+  document.getElementById('clearModalLead').innerHTML =
+    `确认清除商户 <strong>${merchantCode}</strong> 在 <strong>${scope}</strong> 下的全部特殊配置？清除后该商户将恢复按默认配置校验，此操作不可撤销。`;
+  openModal('clearModal');
+}
+function confirmClear(){
+  closeModal('clearModal');
+  deleteMerchantOverride(merchantCode);
+  draft = getDefault();
+  panelState = 'S2';
+  renderAll();
+  toast('已清除商户特殊配置，恢复展示默认配置');
+}
+
+/* ============ Save ============ */
+function validateDraft(){
+  let ok = true;
+  draft.forEach(r=>{
+    if(r.minAmount === '' || isNaN(parseFloat(r.minAmount)) || parseFloat(r.minAmount) < 0) ok = false;
+    if(hasChains() && r.chainOverrides) r.chainOverrides.forEach(c=>{
+      if(c.minAmount === '' || isNaN(parseFloat(c.minAmount)) || parseFloat(c.minAmount) < 0) ok = false;
+    });
+  });
+  if(draft.length === 0) ok = false;
+  return ok;
+}
+function openSaveConfirm(){
+  if(!validateDraft()){
+    renderAll(true);
+    toast('请检查金额填写：不能为空或负数，且至少保留一个币种', 'err');
+    return;
+  }
+  const scopeLabel = panelState === 'S1'
+    ? `Default${hasChains() ? ' · ' + REFUND_TYPE_LABEL[refundType] : ''}`
+    : `Merchant: ${merchantCode}${hasChains() ? ' · ' + REFUND_TYPE_LABEL[refundType] : ''}`;
+  document.getElementById('saveModalLead').innerHTML =
+    `产品：<strong>${product === 'CHECKOUT' ? 'Checkout' : 'Checkout Refund'}</strong>　作用域：<strong>${scopeLabel}</strong>`;
+  const rows = draft.map(r=>{
+    const isOther = r.currency === OTHER;
+    const label = isOther ? 'Other <span style="color:var(--subtle)">(USD-equiv.)</span>' : r.currency;
+    const amtTxt = `${parseFloat(r.minAmount||0).toFixed(4)} ${isOther ? 'USD' : ''}`.trim();
+    const chainTxt = isOther
+      ? '<span style="color:var(--subtle)">n/a</span>'
+      : (hasChains() && r.chainOverrides && r.chainOverrides.length)
+        ? r.chainOverrides.map(c=>`${c.chain}: ${parseFloat(c.minAmount||0).toFixed(4)}`).join('<br>')
+        : '<span style="color:var(--subtle)">— (all chains use currency default)</span>';
+    return hasChains()
+      ? `<tr><td>${label}</td><td class="mono">${amtTxt}</td><td>${chainTxt}</td></tr>`
+      : `<tr><td>${label}</td><td class="mono">${amtTxt}</td></tr>`;
+  }).join('');
+  document.getElementById('saveModalTable').innerHTML = hasChains()
+    ? `<tr><th>Currency</th><th>Min Amount</th><th>Chain Overrides</th></tr>${rows}`
+    : `<tr><th>Currency</th><th>Min Amount</th></tr>${rows}`;
+  openModal('saveModal');
+}
+function confirmSave(){
+  closeModal('saveModal');
+  if(panelState === 'S1'){
+    saveDefault(draft);
+  } else {
+    saveMerchantOverride(merchantCode, draft);
+    panelState = 'S4';
+  }
+  renderAll();
+  toast('配置已保存');
+}
+
+/* ============ Rendering ============ */
+function renderAll(showErrors){
+  renderBanner();
+  renderRows(showErrors);
+  renderFoot();
+}
+
+function renderBanner(){
+  const el = document.getElementById('scopeBanner');
+  const title = document.getElementById('cardTitle');
+  const badge = document.getElementById('cardBadge');
+  const productLabel = product === 'CHECKOUT' ? 'Checkout' : `Checkout Refund · ${REFUND_TYPE_LABEL[refundType]}`;
+
+  if(panelState === 'S1'){
+    el.innerHTML = `<span class="txt">当前展示 <strong>${productLabel}</strong> 的默认配置，适用于所有未单独配置的商户。</span>`;
+    title.textContent = 'Default Configuration';
+    badge.innerHTML = `<span class="badge b-info"><span class="bdot"></span>Default</span>`;
+  } else if(panelState === 'S2'){
+    el.innerHTML = `<span class="txt">商户 <strong>${merchantCode}</strong> 在 <strong>${productLabel}</strong> 下暂无特殊配置，以下为当前对其生效的默认值（只读）。</span>`;
+    title.textContent = `Merchant ${merchantCode} — Using Default`;
+    badge.innerHTML = `<span class="badge b-info"><span class="bdot"></span>Default</span>`;
+  } else if(panelState === 'S3'){
+    el.innerHTML = `<span class="txt">正在为商户 <strong>${merchantCode}</strong> 新建 <strong>${productLabel}</strong> 的特殊配置（未保存）。</span>`;
+    title.textContent = `Merchant ${merchantCode} — Draft`;
+    badge.innerHTML = `<span class="badge b-warning"><span class="bdot"></span>Draft (unsaved)</span>`;
+  } else if(panelState === 'S4'){
+    el.innerHTML = `<span class="txt">商户 <strong>${merchantCode}</strong> 在 <strong>${productLabel}</strong> 下已有特殊配置，优先于默认配置生效。</span>`;
+    title.textContent = `Merchant ${merchantCode} — Special Config`;
+    badge.innerHTML = `<span class="badge b-success"><span class="bdot"></span>Merchant-Specific</span>`;
+  }
+}
+
+function currencyOptions(selected, excludeIdx){
+  const used = draft.map((r,i)=> i===excludeIdx ? null : r.currency).filter(Boolean);
+  const eligible = eligibleCurrencyCodes();
+  return eligible.map(code=>{
+    const info = CURRENCIES[code];
+    if(code !== selected && used.includes(code)) return '';
+    return `<option value="${code}" ${code===selected?'selected':''}>${info.label}</option>`;
+  }).join('');
+}
+function chainOptions(idx, selected, excludeCidx){
+  const all = CURRENCIES[draft[idx].currency].chains;
+  const used = draft[idx].chainOverrides.map((c,i)=> i===excludeCidx ? null : c.chain).filter(Boolean);
+  return all.map(ch=>{
+    if(ch !== selected && used.includes(ch)) return '';
+    return `<option value="${ch}" ${ch===selected?'selected':''}>${ch}</option>`;
+  }).join('');
+}
+
+function renderRows(showErrors){
+  const readOnly = panelState === 'S2';
+  const box = document.getElementById('rowsContainer');
+  const addWrap = document.getElementById('addRowWrap');
+
+  if(draft.length === 0){
+    box.innerHTML = `<div class="row-empty">尚未配置任何币种</div>`;
+  } else {
+    box.innerHTML = draft.map((r, idx)=>{
+      const amtErr = showErrors && (r.minAmount === '' || isNaN(parseFloat(r.minAmount)) || parseFloat(r.minAmount) < 0);
+
+      if(r.currency === OTHER){
+        return `<div class="currency-row other-row">
+          <div class="row-main">
+            <div class="row-field"><label>Currency</label>
+              <div class="other-chip">Other<span class="other-chip-sub">unlisted currencies</span></div>
+            </div>
+            <div class="row-field"><label>Min Amount (USD-equivalent)</label>
+              <div class="amt-wrap"><input type="number" step="any" min="0" class="${amtErr?'err':''}" ${readOnly?'disabled':''}
+                value="${r.minAmount}" oninput="onAmountInput(${idx},this.value)"><span class="unit">USD</span></div>
+            </div>
+            <div class="row-spacer"></div>
+            <span class="row-pinned" title="Fallback row — always present, cannot be removed">Fallback</span>
+          </div>
+          <div class="chain-fallback-note">发起时按估算汇率（Rate 接口）换算为实际订单/退款币种再比较，覆盖尚未单独配置最小金额的币种。</div>
+        </div>`;
+      }
+
+      const chainable = hasChains() && CURRENCIES[r.currency].chains.length > 0;
+      let chainBlock = '';
+      if(chainable){
+        const allChainsUsed = r.chainOverrides.length >= CURRENCIES[r.currency].chains.length;
+        const chainRows = r.chainOverrides.map((c, cidx)=>{
+          const cErr = showErrors && (c.minAmount === '' || isNaN(parseFloat(c.minAmount)) || parseFloat(c.minAmount) < 0);
+          return `<div class="chain-row">
+            <div class="row-field"><label>Chain</label>
+              <select class="chain-select" ${readOnly?'disabled':''} onchange="onChainChange(${idx},${cidx},this.value)">${chainOptions(idx, c.chain, cidx)}</select>
+            </div>
+            <div class="row-field"><label>Min Amount</label>
+              <div class="chain-amt"><input type="number" step="any" min="0" class="${cErr?'err':''}" ${readOnly?'disabled':''}
+                value="${c.minAmount}" oninput="onChainAmountInput(${idx},${cidx},this.value)"><span class="unit">${r.currency}</span></div>
+            </div>
+            <button class="chain-del" ${readOnly?'disabled style="visibility:hidden"':''} onclick="removeChainRow(${idx},${cidx})" title="Remove chain override">&times;</button>
+          </div>`;
+        }).join('');
+        chainBlock = `<div class="chain-panel">
+            ${r.chainOverrides.length ? chainRows : `<div class="chain-fallback-note">尚未设置链级覆盖，该币种所有链均使用上方默认最小金额。</div>`}
+            ${!readOnly && !allChainsUsed ? `<span class="chain-add" onclick="addChainRow(${idx})">+ Add Chain</span>` : ''}
+          </div>`;
+        chainBlock = r._expanded ? chainBlock : '';
+      }
+
+      const toggleLabel = chainable
+        ? (r._expanded ? '&minus; Hide chain-specific override' : `+ Chain-specific override${r.chainOverrides.length ? ` (${r.chainOverrides.length})` : ''}`)
+        : '';
+
+      return `<div class="currency-row">
+        <div class="row-main">
+          <div class="row-field"><label>Currency</label>
+            <select class="cur-select" ${readOnly?'disabled':''} onchange="onCurrencyChange(${idx},this.value)">${currencyOptions(r.currency, idx)}</select>
+          </div>
+          <div class="row-field"><label>Min Amount${chainable ? ' (currency default)' : ''}</label>
+            <div class="amt-wrap"><input type="number" step="any" min="0" class="${amtErr?'err':''}" ${readOnly?'disabled':''}
+              value="${r.minAmount}" oninput="onAmountInput(${idx},this.value)"><span class="unit">${r.currency}</span></div>
+          </div>
+          <div class="row-spacer"></div>
+          <button class="row-del" ${readOnly?'disabled':''} onclick="removeCurrencyRow(${idx})" title="Remove currency">&times;</button>
+        </div>
+        ${chainable ? `<div class="chain-toggle" onclick="toggleChainPanel(${idx})" style="${readOnly && !r.chainOverrides.length ? 'display:none':''}">${toggleLabel}</div>` : ''}
+        ${chainBlock}
+      </div>`;
+    }).join('');
+  }
+
+  const nonOtherUsed = draft.filter(r=>r.currency !== OTHER).length;
+  const allUsed = nonOtherUsed >= eligibleCurrencyCodes().length;
+  addWrap.style.display = (readOnly || allUsed) ? 'none' : 'block';
+}
+
+function renderFoot(){
+  const el = document.getElementById('footActions');
+  const meta = document.getElementById('cardMeta');
+  if(panelState === 'S1'){
+    el.innerHTML = `<button class="btn btn-primary" onclick="openSaveConfirm()">Save</button>`;
+    meta.textContent = 'Updated by ops_zhang · 2026-08-18 11:02';
+  } else if(panelState === 'S2'){
+    el.innerHTML = `<button class="btn btn-secondary" onclick="doCopy()">Copy to Merchant-Specific</button>`;
+    meta.textContent = 'Showing default configuration (read-only)';
+  } else if(panelState === 'S3'){
+    el.innerHTML = `<button class="btn btn-ghost" onclick="doCancelDraft()">Cancel</button><button class="btn btn-primary" onclick="openSaveConfirm()">Save</button>`;
+    meta.textContent = 'Unsaved draft, copied from default configuration';
+  } else if(panelState === 'S4'){
+    el.innerHTML = `<button class="btn btn-danger-line btn-sm" onclick="openClearConfirm()">Clear Config</button><button class="btn btn-primary" onclick="openSaveConfirm()">Save</button>`;
+    meta.textContent = 'Merchant-specific configuration · Updated by ops_zhang · 2026-08-15 09:40';
+  }
+}
+
+/* ============ Modal / toast helpers ============ */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeModal(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.backdrop').forEach(b=>b.addEventListener('click', e=>{ if(e.target===b) b.classList.remove('open'); }));
+document.addEventListener('keydown', e=>{ if(e.key==='Escape') document.querySelectorAll('.backdrop.open').forEach(b=>b.classList.remove('open')); });
+
+function toast(msg, type){
+  const w = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast' + (type==='err' ? ' err' : '');
+  el.textContent = msg;
+  w.appendChild(el);
+  setTimeout(()=>el.remove(), 3000);
+}
+
+/* ============ Init ============ */
+draft = getDefault();
+renderAll();
+</script>
+</body>
+</html>
