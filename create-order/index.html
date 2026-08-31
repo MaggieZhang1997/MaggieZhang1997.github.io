@@ -3,17 +3,19 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<link rel="preload" href="/_next/static/media/0484562807a97172-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
-<link rel="preload" href="/_next/static/media/b957ea75a84b6ea7-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
-<link rel="preload" href="/_next/static/media/eafabf029ad39a43-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
-<link rel="stylesheet" href="/_next/static/css/d5cd71f8a9afa578.css" data-precedence="next"/>
+<link rel="preload" href="../_next/static/media/0484562807a97172-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
+<link rel="preload" href="../_next/static/media/b957ea75a84b6ea7-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
+<link rel="preload" href="../_next/static/media/eafabf029ad39a43-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
+<link rel="stylesheet" href="../_next/static/css/d5cd71f8a9afa578.css" data-precedence="next"/>
 <title>MetaComp Checkout</title>
 <meta name="description" content="Crypto checkout demo — MetaComp design system"/>
 </head>
 <body class="min-h-dvh bg-(--bg) text-(--text) font-sans antialiased">
 <div class="flex min-h-dvh flex-col bg-(--bg)">
 <main class="flex flex-1 flex-col items-center justify-center px-4 py-8 lg:px-6">
-<div class="w-full max-w-[720px] overflow-hidden rounded-3xl border border-(--border) bg-(--surface) shadow-card p-6 lg:p-8">
+<!-- max-width is set inline: the compiled Tailwind build has no rule for max-w-[640px],
+     so an arbitrary-value class here would silently do nothing. -->
+<div style="max-width:640px" class="w-full overflow-hidden rounded-3xl border border-(--border) bg-(--surface) shadow-card p-6 lg:p-8">
 
   <div class="flex flex-col gap-1 mb-6">
     <span class="type-h5 font-semibold text-(--text)">Create Checkout Order</span>
@@ -37,7 +39,7 @@
       <div id="group-order-amount" class="grid grid-cols-[2fr_1fr] gap-3">
         <div class="flex flex-col gap-1.5">
           <label for="amount" class="type-caption font-medium text-(--subtle)">Amount<span class="text-(--danger)"> *</span></label>
-          <input id="amount" oninput="updateAddressVisibility()" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="number" step="0.01" min="0" placeholder="259.99" value="259.99"/>
+          <input id="amount" oninput="updateExtraVisibility()" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="number" step="0.01" min="0" placeholder="259.99" value="259.99"/>
           <span id="amount-err" class="hidden type-caption text-(--danger)">Amount is required</span>
         </div>
         <div class="flex flex-col gap-1.5">
@@ -53,11 +55,12 @@
       </div>
 
       <!-- Reference Amount fields -->
-      <div id="group-reference-amount" class="hidden grid grid-cols-[1.3fr_1fr_1fr] gap-3">
+      <div id="group-reference-amount" class="hidden grid grid-cols-[1fr_1fr_1.3fr] gap-3">
         <div class="flex flex-col gap-1.5">
-          <label for="refAmount" class="type-caption font-medium text-(--subtle)">Reference Amount<span class="text-(--danger)"> *</span></label>
-          <input id="refAmount" oninput="updateAddressVisibility()" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="number" step="0.01" min="0" placeholder="135.00"/>
-          <span id="refAmount-err" class="hidden type-caption text-(--danger)">Reference amount is required</span>
+          <label for="orderCurrency" class="type-caption font-medium text-(--subtle)">Order Currency<span class="text-(--danger)"> *</span></label>
+          <select id="orderCurrency" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
+            <option value="USD">USD</option>
+          </select>
         </div>
         <div class="flex flex-col gap-1.5">
           <label for="refCurrency" class="type-caption font-medium text-(--subtle)">Reference Currency<span class="text-(--danger)"> *</span></label>
@@ -69,10 +72,9 @@
           </select>
         </div>
         <div class="flex flex-col gap-1.5">
-          <label for="orderCurrency" class="type-caption font-medium text-(--subtle)">Order Currency</label>
-          <select id="orderCurrency" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
-            <option value="USD">USD</option>
-          </select>
+          <label for="refAmount" class="type-caption font-medium text-(--subtle)">Reference Amount<span class="text-(--danger)"> *</span></label>
+          <input id="refAmount" oninput="updateExtraVisibility()" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="number" step="0.01" min="0" placeholder="135.00"/>
+          <span id="refAmount-err" class="hidden type-caption text-(--danger)">Reference amount is required</span>
         </div>
       </div>
       <span id="reference-hint" class="hidden type-caption text-(--muted)">The USD order amount is calculated from the exchange rate at the time the order is created.</span>
@@ -124,28 +126,75 @@
         <input id="companyName" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="text" placeholder="Enter company name"/>
       </div>
 
-      <!-- Conditional address block (order amount >= 1000 USD) -->
-      <div id="group-address" class="hidden flex-col gap-3">
+      <!-- Travel Rule extra details (order amount >= 1000 USD): any one of three -->
+      <div id="group-extra" class="hidden flex-col gap-5">
         <div class="flex flex-col gap-0.5">
-          <span id="address-heading" class="type-caption font-medium text-(--subtle)">Residential Address</span>
-          <span class="type-body-sm text-(--muted)">Required on the payment page for orders of $1,000 USD or more, unless provided here.</span>
+          <span class="type-caption font-medium text-(--subtle)">Additional information</span>
+          <span class="type-body-sm text-(--muted)">Collected on the payment page for orders of $1,000 USD or more. Fill in any one of these to pre-fill it for the buyer.</span>
         </div>
-        <div class="grid grid-cols-2 gap-3">
+
+        <div class="flex flex-col gap-1.5">
+          <label for="extraOption" class="type-caption font-medium text-(--subtle)">What would you like to provide?</label>
+          <select id="extraOption" onchange="switchExtraOption(this.value)" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
+            <option value="address" id="extraOpt-address">Residential Address</option>
+            <option value="birth" id="extraOpt-birth">Date and place of birth</option>
+            <option value="identity" id="extraOpt-identity">Identity document</option>
+          </select>
+        </div>
+
+        <!-- Option 1 · Address -->
+        <div id="extra-address" class="flex flex-col gap-5">
           <div class="flex flex-col gap-1.5">
             <label for="country" class="type-caption font-medium text-(--subtle)">Country</label>
             <select id="country" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
-              <option value="">Select a country</option>
-              <option value="SG">Singapore</option>
-              <option value="US">United States</option>
-              <option value="GB">United Kingdom</option>
-              <option value="HK">Hong Kong</option>
-              <option value="AU">Australia</option>
-              <option value="CN">China</option>
+        <option value="">Select a country</option>
+        <option value="SG">Singapore</option>
+        <option value="US">United States</option>
+        <option value="GB">United Kingdom</option>
+        <option value="HK">Hong Kong</option>
+        <option value="AU">Australia</option>
+        <option value="CN">China</option>
             </select>
           </div>
           <div class="flex flex-col gap-1.5">
-            <label for="address" class="type-caption font-medium text-(--subtle)">Address</label>
+            <label id="address-label" for="address" class="type-caption font-medium text-(--subtle)">Residential Address</label>
             <input id="address" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="text" placeholder="Enter address"/>
+          </div>
+        </div>
+
+        <!-- Option 2 · Date and place of birth -->
+        <div id="extra-birth" class="hidden flex-col gap-5">
+          <div class="flex flex-col gap-1.5">
+            <label id="dateOfBirth-label" for="dateOfBirth" class="type-caption font-medium text-(--subtle)">Date of Birth</label>
+            <input id="dateOfBirth" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="date"/>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label id="placeOfBirth-label" for="placeOfBirth" class="type-caption font-medium text-(--subtle)">Place of Birth</label>
+            <select id="placeOfBirth" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
+        <option value="">Select a country</option>
+        <option value="SG">Singapore</option>
+        <option value="US">United States</option>
+        <option value="GB">United Kingdom</option>
+        <option value="HK">Hong Kong</option>
+        <option value="AU">Australia</option>
+        <option value="CN">China</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Option 3 · Identity document -->
+        <div id="extra-identity" class="hidden flex-col gap-5">
+          <div id="identityType-field" class="flex flex-col gap-1.5">
+            <label for="identityType" class="type-caption font-medium text-(--subtle)">Identity Document Type</label>
+            <select id="identityType" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
+        <option value="">Select a type</option>
+        <option value="PASSPORT">Passport</option>
+        <option value="NRIC">NRIC</option>
+            </select>
+          </div>
+          <div class="flex flex-col gap-1.5">
+            <label id="identityNumber-label" for="identityNumber" class="type-caption font-medium text-(--subtle)">Identity Document Number</label>
+            <input id="identityNumber" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="text" placeholder="Enter document number"/>
           </div>
         </div>
       </div>
@@ -255,11 +304,14 @@ function selectAmountMode(mode) {
     refHint.classList.remove('hidden');
   }
   clearError(mode === 'order' ? 'refAmount' : 'amount');
-  updateAddressVisibility();
+  updateExtraVisibility();
+  updateExtraLabels();
 }
 
 // ── Buyer Info (optional): mirrors /buyer-info/, but nothing here is required ──
 let buyerType = 'individual';
+// Priority order for the Travel Rule extras: address, then birth, then identity document.
+let extraOption = 'address';
 
 function currentAmountApprox() {
   const id = amountMode === 'order' ? 'amount' : 'refAmount';
@@ -267,15 +319,75 @@ function currentAmountApprox() {
   return isNaN(v) ? 0 : v;
 }
 
-function updateAddressVisibility() {
-  const group = document.getElementById('group-address');
-  const heading = document.getElementById('address-heading');
-  if (currentAmountApprox() >= 1000) {
-    group.classList.remove('hidden'); group.classList.add('flex');
-    heading.textContent = buyerType === 'company' ? 'Registered Address' : 'Residential Address';
-  } else {
-    group.classList.add('hidden'); group.classList.remove('flex');
-  }
+// The Travel Rule extras are three interchangeable options; only one is collected.
+const EXTRA_FIELDS = {
+  address:  ['country', 'address'],
+  birth:    ['dateOfBirth', 'placeOfBirth'],
+  identity: ['identityType', 'identityNumber'],
+};
+const ALL_EXTRA_FIELDS = ['country', 'address', 'dateOfBirth', 'placeOfBirth', 'identityType', 'identityNumber'];
+
+function updateExtraVisibility() {
+  const group = document.getElementById('group-extra');
+  const show = currentAmountApprox() >= 1000;
+  group.classList.toggle('hidden', !show);
+  group.classList.toggle('flex', show);
+}
+
+// Wording differs between an individual and a company, but the underlying option is the same.
+function updateExtraLabels() {
+  const isCo = buyerType === 'company';
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  const req = '';
+  const setLabel = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = text + req;
+  };
+
+  set('extraOpt-address',  isCo ? 'Registered address' : 'Residential Address');
+  set('extraOpt-birth',    isCo ? 'Date and country of registration' : 'Date and place of birth');
+  set('extraOpt-identity', isCo ? 'Business registration number' : 'Identity document');
+
+  setLabel('address-label',        isCo ? 'Registered Address' : 'Residential Address');
+  setLabel('dateOfBirth-label',    isCo ? 'Date of Registration' : 'Date of Birth');
+  setLabel('placeOfBirth-label',   isCo ? 'Country of Incorporation' : 'Place of Birth');
+  setLabel('identityNumber-label', isCo ? 'Business Registration Number' : 'Identity Document Number');
+
+  // Error messages have to follow the labels, or a company sees individual wording.
+  set('dateOfBirth-err',    isCo ? 'Date of registration is required' : 'Date of birth is required');
+  set('placeOfBirth-err',   isCo ? 'Country of incorporation is required' : 'Place of birth is required');
+  set('identityNumber-err', isCo ? 'Business registration number is required' : 'Identity document number is required');
+
+  // A company has no document type — the registration number stands on its own.
+  const typeField = document.getElementById('identityType-field');
+  typeField.classList.toggle('hidden', isCo);
+  typeField.classList.toggle('flex', !isCo);
+}
+
+function showExtraOption(opt) {
+  extraOption = opt;
+  document.getElementById('extraOption').value = opt;
+  ['address', 'birth', 'identity'].forEach(k => {
+    const el = document.getElementById('extra-' + k);
+    el.classList.toggle('hidden', k !== opt);
+    el.classList.toggle('flex', k === opt);
+  });
+  updateExtraLabels();
+}
+
+// Switching which of the three to provide clears only those fields — the buyer's name stays.
+function switchExtraOption(opt) {
+  if (opt === extraOption) return;
+  clearExtraFields();
+  showExtraOption(opt);
+}
+
+function clearExtraFields() {
+  ALL_EXTRA_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ALL_EXTRA_FIELDS.forEach(clearError);
 }
 
 function selectBuyerType(type) {
@@ -299,14 +411,15 @@ function selectBuyerType(type) {
     comGroup.classList.remove('hidden'); comGroup.classList.add('flex');
     indGroup.classList.add('hidden'); indGroup.classList.remove('grid');
   }
-  updateAddressVisibility();
+  updateExtraVisibility();
+  updateExtraLabels();
 }
 
 function createOrder() {
   let valid = true;
   const requiredFields = amountMode === 'order'
     ? ['amount', 'productName', 'merchantName', 'redirectUrl']
-    : ['refAmount', 'productName', 'merchantName', 'redirectUrl'];
+    : ['refAmount', 'orderCurrency', 'productName', 'merchantName', 'redirectUrl'];
   requiredFields.forEach(clearError);
 
   requiredFields.forEach(id => {
@@ -339,8 +452,14 @@ function createOrder() {
       firstName: document.getElementById('firstName').value.trim(),
       lastName: document.getElementById('lastName').value.trim(),
       companyName: document.getElementById('companyName').value.trim(),
+      // Which of the three the merchant chose, plus whatever they filled in for it.
+      extraOption: extraOption,
       country: document.getElementById('country').value,
-      address: document.getElementById('address').value.trim()
+      address: document.getElementById('address').value.trim(),
+      dateOfBirth: document.getElementById('dateOfBirth').value,
+      placeOfBirth: document.getElementById('placeOfBirth').value,
+      identityType: document.getElementById('identityType').value,
+      identityNumber: document.getElementById('identityNumber').value.trim()
     }
   };
 
@@ -362,7 +481,7 @@ function createOrder() {
 }
 </script>
 
-<button type="button" aria-label="Screens" class="fixed bottom-5 right-5 z-[2000] inline-flex items-center gap-2 rounded-full bg-(--brand-purple) px-4 py-3 type-body-sm font-semibold text-(--on-brand) shadow-float" onclick="window.location.href='/'">
+<button type="button" aria-label="Screens" class="fixed bottom-5 right-5 z-[2000] inline-flex items-center gap-2 rounded-full bg-(--brand-purple) px-4 py-3 type-body-sm font-semibold text-(--on-brand) shadow-float" onclick="window.location.href='../'">
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid h-4 w-4" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
   Screens
 </button>

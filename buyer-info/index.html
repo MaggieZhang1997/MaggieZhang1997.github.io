@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<link rel="preload" href="/_next/static/media/0484562807a97172-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
-<link rel="preload" href="/_next/static/media/b957ea75a84b6ea7-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
-<link rel="preload" href="/_next/static/media/eafabf029ad39a43-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
-<link rel="stylesheet" href="/_next/static/css/d5cd71f8a9afa578.css" data-precedence="next"/>
+<link rel="preload" href="../_next/static/media/0484562807a97172-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
+<link rel="preload" href="../_next/static/media/b957ea75a84b6ea7-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
+<link rel="preload" href="../_next/static/media/eafabf029ad39a43-s.p.woff2" as="font" crossorigin="" type="font/woff2"/>
+<link rel="stylesheet" href="../_next/static/css/d5cd71f8a9afa578.css" data-precedence="next"/>
 <title>MetaComp Checkout</title>
 <meta name="description" content="Crypto checkout demo — MetaComp design system"/>
 </head>
@@ -42,6 +42,13 @@
             <span class="type-caption font-medium text-(--subtle)">Description</span>
             <p class="type-body text-(--muted) line-clamp-2" id="description-display">Engineered for the modern traveller, the ProGlide 28&quot; Hardshell Spinner combines durability with effortless mobility. Its reinforced shell resists impact, while precision-engineered spinner wheels glide silently across any surface.</p>
           </div>
+          <div id="reference-amount-block" class="hidden flex-col gap-1">
+            <span class="type-caption font-medium text-(--subtle)">Reference Amount</span>
+            <div class="flex items-baseline gap-1.5">
+              <span class="font-semibold text-(--text) tabular-nums type-h5" id="ref-amount-display">0.00</span>
+              <span class="type-body-sm text-(--muted)" id="ref-currency-display">—</span>
+            </div>
+          </div>
           <div class="flex flex-col gap-1">
             <span class="type-caption font-medium text-(--subtle)">Order Amount</span>
             <div class="flex items-baseline gap-1.5">
@@ -76,11 +83,17 @@
               <span class="type-body-sm text-(--muted)">Select whether you are paying as an individual or on behalf of a company.</span>
             </div>
 
-            <div class="flex gap-2">
-              <button type="button" id="opt-individual" onclick="selectBuyerType('individual')"
-                class="inline-flex h-8 items-center rounded-full border px-3 type-body-sm font-semibold transition-colors border-(--accent) bg-(--accent-subtle) text-(--accent-text)">Individual</button>
-              <button type="button" id="opt-company" onclick="selectBuyerType('company')"
-                class="inline-flex h-8 items-center rounded-full border px-3 type-body-sm font-semibold transition-colors border-(--border) bg-(--fill) text-(--text)">Company</button>
+            <div role="radiogroup" aria-label="Buyer type" class="flex flex-col gap-2">
+              <label id="opt-individual" class="flex cursor-pointer items-center gap-3 rounded-sm border px-4 py-3 transition-colors border-(--accent) bg-(--accent-subtle)">
+                <input type="radio" name="buyerType" value="individual" checked onchange="switchBuyerType('individual')"
+                  class="h-4 w-4 shrink-0 cursor-pointer accent-(--accent)"/>
+                <span class="type-body font-semibold text-(--text)">Individual</span>
+              </label>
+              <label id="opt-company" class="flex cursor-pointer items-center gap-3 rounded-sm border px-4 py-3 transition-colors border-(--border) bg-(--fill)">
+                <input type="radio" name="buyerType" value="company" onchange="switchBuyerType('company')"
+                  class="h-4 w-4 shrink-0 cursor-pointer accent-(--accent)"/>
+                <span class="type-body font-semibold text-(--text)">Company</span>
+              </label>
             </div>
 
             <!-- Individual fields -->
@@ -106,29 +119,82 @@
               </div>
             </div>
 
-            <!-- Conditional address block (order amount >= 1000 USD) -->
-            <div id="group-address" class="hidden flex-col gap-5">
+            <!-- Travel Rule extra details (order amount >= 1000 USD): any one of three -->
+            <div id="group-extra" class="hidden flex-col gap-5">
               <div class="flex flex-col gap-0.5">
-                <span id="address-heading" class="type-caption font-medium text-(--subtle)">Residential Address</span>
-                <span class="type-body-sm text-(--muted)">Required for orders of $1,000 USD or more.</span>
+                <span class="type-caption font-medium text-(--subtle)">Additional information</span>
+                <span class="type-body-sm text-(--muted)">Required for orders of $1,000 USD or more. Provide any one of the following.</span>
               </div>
+
               <div class="flex flex-col gap-1.5">
-                <label for="country" class="type-caption font-medium text-(--subtle)">Country<span class="text-(--danger)"> *</span></label>
-                <select id="country" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
-                  <option value="">Select a country</option>
-                  <option value="SG">Singapore</option>
-                  <option value="US">United States</option>
-                  <option value="GB">United Kingdom</option>
-                  <option value="HK">Hong Kong</option>
-                  <option value="AU">Australia</option>
-                  <option value="CN">China</option>
+                <label for="extraOption" class="type-caption font-medium text-(--subtle)">What would you like to provide?<span class="text-(--danger)"> *</span></label>
+                <select id="extraOption" onchange="switchExtraOption(this.value)" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
+                  <option value="address" id="extraOpt-address">Residential Address</option>
+                  <option value="birth" id="extraOpt-birth">Date and place of birth</option>
+                  <option value="identity" id="extraOpt-identity">Identity document</option>
                 </select>
-                <span id="country-err" class="hidden type-caption text-(--danger)">Country is required</span>
               </div>
-              <div class="flex flex-col gap-1.5">
-                <label for="address" class="type-caption font-medium text-(--subtle)">Address<span class="text-(--danger)"> *</span></label>
-                <input id="address" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="text" placeholder="Enter address"/>
-                <span id="address-err" class="hidden type-caption text-(--danger)">Address is required</span>
+
+              <!-- Option 1 · Address -->
+              <div id="extra-address" class="flex flex-col gap-5">
+                <div class="flex flex-col gap-1.5">
+                  <label for="country" class="type-caption font-medium text-(--subtle)">Country<span class="text-(--danger)"> *</span></label>
+                  <select id="country" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
+                    <option value="">Select a country</option>
+                    <option value="SG">Singapore</option>
+                    <option value="US">United States</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="HK">Hong Kong</option>
+                    <option value="AU">Australia</option>
+                    <option value="CN">China</option>
+                  </select>
+                  <span id="country-err" class="hidden type-caption text-(--danger)">Country is required</span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label id="address-label" for="address" class="type-caption font-medium text-(--subtle)">Residential Address<span class="text-(--danger)"> *</span></label>
+                  <input id="address" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="text" placeholder="Enter address"/>
+                  <span id="address-err" class="hidden type-caption text-(--danger)">Address is required</span>
+                </div>
+              </div>
+
+              <!-- Option 2 · Date and place of birth -->
+              <div id="extra-birth" class="hidden flex-col gap-5">
+                <div class="flex flex-col gap-1.5">
+                  <label id="dateOfBirth-label" for="dateOfBirth" class="type-caption font-medium text-(--subtle)">Date of Birth<span class="text-(--danger)"> *</span></label>
+                  <input id="dateOfBirth" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="date"/>
+                  <span id="dateOfBirth-err" class="hidden type-caption text-(--danger)">Date of birth is required</span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label id="placeOfBirth-label" for="placeOfBirth" class="type-caption font-medium text-(--subtle)">Place of Birth<span class="text-(--danger)"> *</span></label>
+                  <select id="placeOfBirth" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
+                    <option value="">Select a country</option>
+                    <option value="SG">Singapore</option>
+                    <option value="US">United States</option>
+                    <option value="GB">United Kingdom</option>
+                    <option value="HK">Hong Kong</option>
+                    <option value="AU">Australia</option>
+                    <option value="CN">China</option>
+                  </select>
+                  <span id="placeOfBirth-err" class="hidden type-caption text-(--danger)">Place of birth is required</span>
+                </div>
+              </div>
+
+              <!-- Option 3 · Identity document -->
+              <div id="extra-identity" class="hidden flex-col gap-5">
+                <div id="identityType-field" class="flex flex-col gap-1.5">
+                  <label for="identityType" class="type-caption font-medium text-(--subtle)">Identity Document Type<span class="text-(--danger)"> *</span></label>
+                  <select id="identityType" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors focus:border-(--accent) border-(--border)">
+                    <option value="">Select a type</option>
+                    <option value="PASSPORT">Passport</option>
+                    <option value="NRIC">NRIC</option>
+                  </select>
+                  <span id="identityType-err" class="hidden type-caption text-(--danger)">Identity document type is required</span>
+                </div>
+                <div class="flex flex-col gap-1.5">
+                  <label id="identityNumber-label" for="identityNumber" class="type-caption font-medium text-(--subtle)">Identity Document Number<span class="text-(--danger)"> *</span></label>
+                  <input id="identityNumber" class="h-12 rounded-sm border bg-(--fill) px-4 type-body text-(--text) outline-none transition-colors placeholder:text-(--subtle) focus:border-(--accent) focus:bg-(--surface-overlay) border-(--border)" type="text" placeholder="Enter document number"/>
+                  <span id="identityNumber-err" class="hidden type-caption text-(--danger)">Identity document number is required</span>
+                </div>
               </div>
             </div>
 
@@ -137,6 +203,17 @@
               <div class="flex flex-col gap-0.5">
                 <span class="type-body">Please provide accurate information. This is used for compliance verification and cannot be changed after submission.</span>
               </div>
+            </div>
+
+            <!-- Identity declaration — US-003: must be ticked on every visit, regardless of
+                 whether the merchant pre-filled everything or the buyer edited anything. -->
+            <div class="flex flex-col gap-1.5">
+              <label for="declare" class="flex cursor-pointer items-start gap-3">
+                <input id="declare" type="checkbox" onchange="clearError('declare')"
+                  class="mt-0.5 h-5 w-5 shrink-0 cursor-pointer rounded-sm accent-(--accent)"/>
+                <span id="declare-text" class="type-body-sm text-(--text)">I declare that the information above is my own true and accurate information.</span>
+              </label>
+              <span id="declare-err" class="hidden type-caption text-(--danger)">Please tick the declaration to continue</span>
             </div>
 
             <button type="button" onclick="submitBuyerInfo()"
@@ -157,6 +234,10 @@
 let ORDER_AMOUNT_USD = 259.99;
 const ADDRESS_THRESHOLD_USD = 1000;
 let buyerType = 'individual';
+// Priority order for the Travel Rule extras: address, then birth, then identity document.
+let extraOption = 'address';
+// Illustrative rates only — the real conversion is done server-side at order creation time.
+const MOCK_FX_TO_USD = { SGD: 0.74, EUR: 1.08, GBP: 1.27, HKD: 0.128, USD: 1 };
 
 function applyCreatedOrder() {
   const raw = localStorage.getItem('metacompCheckoutOrder');
@@ -168,16 +249,34 @@ function applyCreatedOrder() {
   let prefillType = 'individual';
 
   if (order) {
-    // Order Amount takes precedence; Reference Amount is shown as-entered (no client-side FX conversion in this demo).
-    const src = order.orderAmount || order.referenceAmount;
-    const amount = parseFloat(src && src.amount);
-    if (!isNaN(amount)) {
-      ORDER_AMOUNT_USD = amount;
-      document.getElementById('amount-display').textContent = amount.toFixed(2);
+    if (order.referenceAmount && order.referenceAmount.amount) {
+      // Reference Amount is shown as entered; Order Amount shows the USD value calculated from it
+      // (mock FX rates for demo purposes only — the real conversion happens server-side, see the
+      // checkout-reference-currency PRD).
+      const ref = order.referenceAmount;
+      const refAmt = parseFloat(ref.amount);
+      const block = document.getElementById('reference-amount-block');
+      block.classList.remove('hidden');
+      block.classList.add('flex');
+      document.getElementById('ref-amount-display').textContent = isNaN(refAmt) ? ref.amount : refAmt.toFixed(2);
+      document.getElementById('ref-currency-display').textContent = ref.currency || '—';
+
+      if (!isNaN(refAmt)) {
+        const rate = MOCK_FX_TO_USD[ref.currency] || 1;
+        const usdAmount = refAmt * rate;
+        ORDER_AMOUNT_USD = usdAmount;
+        document.getElementById('amount-display').textContent = usdAmount.toFixed(2);
+        document.getElementById('currency-display').textContent = ref.orderCurrency || 'USD';
+      }
+    } else if (order.orderAmount && order.orderAmount.amount) {
+      const amount = parseFloat(order.orderAmount.amount);
+      if (!isNaN(amount)) {
+        ORDER_AMOUNT_USD = amount;
+        document.getElementById('amount-display').textContent = amount.toFixed(2);
+      }
+      document.getElementById('currency-display').textContent = order.orderAmount.currency;
     }
-    if (src && src.currency) {
-      document.getElementById('currency-display').textContent = src.currency;
-    }
+
     if (order.productInfo) {
       if (order.productInfo.productName) {
         document.getElementById('productName-display').textContent = order.productInfo.productName;
@@ -191,10 +290,15 @@ function applyCreatedOrder() {
         el.textContent = order.checkoutConfiguration.merchantName;
       });
     }
-    if (order.buyerInfo && order.buyerInfo.buyerType === 'company') prefillType = 'company';
+    // US-003 form pre-selection: use an explicit buyerType when the merchant sent one,
+    // otherwise infer from the fields actually provided; fall back to Individual.
+    prefillType = inferBuyerType(order.buyerInfo);
   }
 
-  // selectBuyerType() also runs updateAddressVisibility(), which needs ORDER_AMOUNT_USD set above.
+  // Show the option the merchant filled in; otherwise fall back to the first by priority.
+  showExtraOption(inferExtraOption(order && order.buyerInfo));
+
+  // selectBuyerType() also runs updateExtraVisibility(), which needs ORDER_AMOUNT_USD set above.
   selectBuyerType(prefillType);
 
   if (order && order.buyerInfo) {
@@ -202,18 +306,34 @@ function applyCreatedOrder() {
     if (bi.firstName) document.getElementById('firstName').value = bi.firstName;
     if (bi.lastName) document.getElementById('lastName').value = bi.lastName;
     if (bi.companyName) document.getElementById('companyName').value = bi.companyName;
-    if (bi.country) document.getElementById('country').value = bi.country;
-    if (bi.address) document.getElementById('address').value = bi.address;
-
-    // If the merchant already supplied everything this buyer type needs, skip this page entirely.
-    const needsAddress = ORDER_AMOUNT_USD >= ADDRESS_THRESHOLD_USD;
-    const requiredFields = prefillType === 'individual' ? ['firstName', 'lastName'] : ['companyName'];
-    if (needsAddress) requiredFields.push('country', 'address');
-    const isComplete = requiredFields.every(id => document.getElementById(id).value.trim() !== '');
-    if (isComplete) {
-      window.location.replace('../checkout/');
-    }
+    ALL_EXTRA_FIELDS.forEach(id => {
+      if (bi[id]) document.getElementById(id).value = bi[id];
+    });
   }
+
+  // US-003: this page is always shown. There is deliberately no "merchant already sent
+  // everything, skip ahead" branch — the buyer must see and confirm the details either way.
+}
+
+// Honour an explicit choice from the merchant; otherwise pick whichever option they
+// actually filled in, in priority order; failing that, the first option.
+function inferExtraOption(bi) {
+  if (!bi) return 'address';
+  if (EXTRA_FIELDS[bi.extraOption]) return bi.extraOption;
+  const order = ['address', 'birth', 'identity'];
+  for (const opt of order) {
+    if (EXTRA_FIELDS[opt].some(f => bi[f] && String(bi[f]).trim())) return opt;
+  }
+  return 'address';
+}
+
+function inferBuyerType(bi) {
+  if (!bi) return 'individual';
+  const t = String(bi.buyerType || '').toLowerCase();
+  if (t === 'company' || t === 'corporate') return 'company';
+  if (t === 'individual') return 'individual';
+  if (bi.companyName && String(bi.companyName).trim()) return 'company';
+  return 'individual';
 }
 
 function clearError(id) {
@@ -223,50 +343,150 @@ function clearError(id) {
   if (err) err.classList.add('hidden');
 }
 
-function updateAddressVisibility() {
-  const group = document.getElementById('group-address');
-  const heading = document.getElementById('address-heading');
-  if (ORDER_AMOUNT_USD >= ADDRESS_THRESHOLD_USD) {
-    group.classList.remove('hidden');
-    group.classList.add('flex');
-    heading.textContent = buyerType === 'company' ? 'Registered Address' : 'Residential Address';
-  } else {
-    group.classList.add('hidden');
-    group.classList.remove('flex');
-  }
+// The Travel Rule extras are three interchangeable options; only one is collected.
+const EXTRA_FIELDS = {
+  address:  ['country', 'address'],
+  birth:    ['dateOfBirth', 'placeOfBirth'],
+  identity: ['identityType', 'identityNumber'],
+};
+const ALL_EXTRA_FIELDS = ['country', 'address', 'dateOfBirth', 'placeOfBirth', 'identityType', 'identityNumber'];
+
+function updateExtraVisibility() {
+  const group = document.getElementById('group-extra');
+  const show = ORDER_AMOUNT_USD >= ADDRESS_THRESHOLD_USD;
+  group.classList.toggle('hidden', !show);
+  group.classList.toggle('flex', show);
+}
+
+// Wording differs between an individual and a company, but the underlying option is the same.
+function updateExtraLabels() {
+  const isCo = buyerType === 'company';
+  const set = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  const req = '<span class="text-(--danger)"> *</span>';
+  const setLabel = (id, text) => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = text + req;
+  };
+
+  set('extraOpt-address',  isCo ? 'Registered address' : 'Residential Address');
+  set('extraOpt-birth',    isCo ? 'Date and country of registration' : 'Date and place of birth');
+  set('extraOpt-identity', isCo ? 'Business registration number' : 'Identity document');
+
+  setLabel('address-label',        isCo ? 'Registered Address' : 'Residential Address');
+  setLabel('dateOfBirth-label',    isCo ? 'Date of Registration' : 'Date of Birth');
+  setLabel('placeOfBirth-label',   isCo ? 'Country of Incorporation' : 'Place of Birth');
+  setLabel('identityNumber-label', isCo ? 'Business Registration Number' : 'Identity Document Number');
+
+  // Error messages have to follow the labels, or a company sees individual wording.
+  set('dateOfBirth-err',    isCo ? 'Date of registration is required' : 'Date of birth is required');
+  set('placeOfBirth-err',   isCo ? 'Country of incorporation is required' : 'Place of birth is required');
+  set('identityNumber-err', isCo ? 'Business registration number is required' : 'Identity document number is required');
+
+  // A company has no document type — the registration number stands on its own.
+  const typeField = document.getElementById('identityType-field');
+  typeField.classList.toggle('hidden', isCo);
+  typeField.classList.toggle('flex', !isCo);
+}
+
+function showExtraOption(opt) {
+  extraOption = opt;
+  document.getElementById('extraOption').value = opt;
+  ['address', 'birth', 'identity'].forEach(k => {
+    const el = document.getElementById('extra-' + k);
+    el.classList.toggle('hidden', k !== opt);
+    el.classList.toggle('flex', k === opt);
+  });
+  updateExtraLabels();
+}
+
+// Switching which of the three to provide clears only those fields — the buyer's name stays.
+function switchExtraOption(opt) {
+  if (opt === extraOption) return;
+  clearExtraFields();
+  showExtraOption(opt);
+}
+
+function clearExtraFields() {
+  ALL_EXTRA_FIELDS.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  ALL_EXTRA_FIELDS.forEach(clearError);
+}
+
+// Buyer-initiated switch: discards everything captured for the previous type — including
+// whatever the merchant pre-filled — so the buyer starts the new form clean.
+function switchBuyerType(type) {
+  if (type === buyerType) return;
+  clearAllFields();
+  selectBuyerType(type);
+}
+
+function clearAllFields() {
+  ['firstName', 'lastName', 'companyName'].concat(ALL_EXTRA_FIELDS).forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  // The declaration attested to details that no longer exist — it has to be given again.
+  const declare = document.getElementById('declare');
+  if (declare) declare.checked = false;
+  ['firstName', 'lastName', 'companyName', 'declare'].concat(ALL_EXTRA_FIELDS).forEach(clearError);
 }
 
 function selectBuyerType(type) {
   buyerType = type;
-  const indBtn = document.getElementById('opt-individual');
-  const comBtn = document.getElementById('opt-company');
+  const indLabel = document.getElementById('opt-individual');
+  const comLabel = document.getElementById('opt-company');
   const indGroup = document.getElementById('group-individual');
   const comGroup = document.getElementById('group-company');
+  const isInd = type === 'individual';
 
-  const selClasses = ['border-(--accent)', 'bg-(--accent-subtle)', 'text-(--accent-text)'];
-  const unselClasses = ['border-(--border)', 'bg-(--fill)', 'text-(--text)'];
+  const selClasses = ['border-(--accent)', 'bg-(--accent-subtle)'];
+  const unselClasses = ['border-(--border)', 'bg-(--fill)'];
 
-  if (type === 'individual') {
-    indBtn.classList.add(...selClasses); indBtn.classList.remove(...unselClasses);
-    comBtn.classList.add(...unselClasses); comBtn.classList.remove(...selClasses);
-    indGroup.classList.remove('hidden'); indGroup.classList.add('flex');
-    comGroup.classList.add('hidden'); comGroup.classList.remove('flex');
-  } else {
-    comBtn.classList.add(...selClasses); comBtn.classList.remove(...unselClasses);
-    indBtn.classList.add(...unselClasses); indBtn.classList.remove(...selClasses);
-    comGroup.classList.remove('hidden'); comGroup.classList.add('flex');
-    indGroup.classList.add('hidden'); indGroup.classList.remove('flex');
+  const radio = document.querySelector('input[name="buyerType"][value="' + type + '"]');
+  if (radio) radio.checked = true;
+
+  indLabel.classList.remove(...(isInd ? unselClasses : selClasses));
+  indLabel.classList.add(...(isInd ? selClasses : unselClasses));
+  comLabel.classList.remove(...(isInd ? selClasses : unselClasses));
+  comLabel.classList.add(...(isInd ? unselClasses : selClasses));
+
+  indGroup.classList.toggle('hidden', !isInd);
+  indGroup.classList.toggle('flex', isInd);
+  comGroup.classList.toggle('hidden', isInd);
+  comGroup.classList.toggle('flex', !isInd);
+
+  updateExtraVisibility();
+  updateExtraLabels();
+  updateDeclarationText();
+}
+
+function updateDeclarationText() {
+  const el = document.getElementById('declare-text');
+  if (!el) return;
+  el.textContent = buyerType === 'company'
+    ? 'I declare that the information above is true and accurate, and that I am authorised to submit it on behalf of this company.'
+    : 'I declare that the information above is my own true and accurate information.';
+}
+
+// Only the option the buyer picked is validated — the other two are not required.
+function requiredExtraFields() {
+  const fields = EXTRA_FIELDS[extraOption].slice();
+  // A company provides only the registration number, with no document type alongside it.
+  if (extraOption === 'identity' && buyerType === 'company') {
+    return fields.filter(f => f !== 'identityType');
   }
-  updateAddressVisibility();
+  return fields;
 }
 
 function submitBuyerInfo() {
   let valid = true;
-  const needsAddress = ORDER_AMOUNT_USD >= ADDRESS_THRESHOLD_USD;
+  const needsExtra = ORDER_AMOUNT_USD >= ADDRESS_THRESHOLD_USD;
   const requiredFields = buyerType === 'individual' ? ['firstName', 'lastName'] : ['companyName'];
-  if (needsAddress) requiredFields.push('country', 'address');
+  if (needsExtra) requiredFields.push(...requiredExtraFields());
 
-  ['firstName', 'lastName', 'companyName', 'country', 'address'].forEach(clearError);
+  ['firstName', 'lastName', 'companyName', 'declare'].concat(ALL_EXTRA_FIELDS).forEach(clearError);
 
   requiredFields.forEach(id => {
     const el = document.getElementById(id);
@@ -278,14 +498,50 @@ function submitBuyerInfo() {
     }
   });
 
+  // US-003: the declaration is required on every submission, independent of how complete
+  // the pre-filled data was and of whether the buyer edited anything.
+  const declare = document.getElementById('declare');
+  if (!declare.checked) {
+    valid = false;
+    document.getElementById('declare-err').classList.remove('hidden');
+  }
+
   if (!valid) return;
+
+  persistBuyerInfo();
   window.location.href = '../checkout/';
+}
+
+// US-003: the order keeps only the fields of the type the buyer finally selected —
+// anything the merchant sent for the other type is dropped.
+function persistBuyerInfo() {
+  let order = null;
+  try { order = JSON.parse(localStorage.getItem('metacompCheckoutOrder') || 'null'); } catch (e) { order = null; }
+  if (!order) order = {};
+
+  const v = id => document.getElementById(id).value.trim();
+  const buyerInfo = { buyerType: buyerType };
+  if (buyerType === 'individual') {
+    buyerInfo.firstName = v('firstName');
+    buyerInfo.lastName = v('lastName');
+  } else {
+    buyerInfo.companyName = v('companyName');
+  }
+  // Only the chosen option is kept; the other two are not part of this order.
+  if (ORDER_AMOUNT_USD >= ADDRESS_THRESHOLD_USD) {
+    buyerInfo.extraOption = extraOption;
+    requiredExtraFields().forEach(id => { buyerInfo[id] = v(id); });
+  }
+  buyerInfo.declarationAccepted = true;
+
+  order.buyerInfo = buyerInfo;
+  try { localStorage.setItem('metacompCheckoutOrder', JSON.stringify(order)); } catch (e) {}
 }
 
 applyCreatedOrder();
 </script>
 
-<button type="button" aria-label="Screens" class="fixed bottom-5 right-5 z-[2000] inline-flex items-center gap-2 rounded-full bg-(--brand-purple) px-4 py-3 type-body-sm font-semibold text-(--on-brand) shadow-float" onclick="window.location.href='/'">
+<button type="button" aria-label="Screens" class="fixed bottom-5 right-5 z-[2000] inline-flex items-center gap-2 rounded-full bg-(--brand-purple) px-4 py-3 type-body-sm font-semibold text-(--on-brand) shadow-float" onclick="window.location.href='../'">
   <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-layout-grid h-4 w-4" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg>
   Screens
 </button>
