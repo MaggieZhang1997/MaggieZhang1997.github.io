@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Checkout Refund · Frontend Demo</title>
+<style>
+  :root{
+    --bg:#f6f7fb; --card:#ffffff; --ink:#1c2230; --muted:#5b6478; --line:#e6e9f2;
+    --brand:#5b3fd6; --brand-soft:#efeafd; --brand-ink:#3a2898;
+    --shadow:0 1px 2px rgba(20,25,40,.06),0 8px 24px rgba(20,25,40,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:14px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;}
+  .wrap{max-width:1280px;margin:0 auto;padding:26px 20px 80px}
+  h1{font-size:22px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+
+  /* table */
+  .panel{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+  table{width:100%;border-collapse:collapse;font-size:13px}
+  th,td{text-align:left;padding:11px 14px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{background:#f0f1f7;font-weight:600;color:#33405c;font-size:12.5px}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#fafbff}
+  .num{font-variant-numeric:tabular-nums}
+
+  /* status pills */
+  .pill{display:inline-block;padding:1px 10px;border-radius:999px;font-size:12px;font-weight:600}
+  .pill.OPENING,.pill.AWAITING_PAYMENT{background:#eef0f6;color:#5b6478}
+  .pill.RECEIVED{background:#fff1e0;color:#b54708}
+  .pill.SUCCEEDED{background:#e6efff;color:#1d4ed8}
+  .pill.SETTLED{background:#e3f6ec;color:#0c7c59}
+  .pill.EXPIRED,.pill.CLOSED{background:#eceef3;color:#8a92a6}
+  .pill.INITIATED{background:#e6efff;color:#1d4ed8}
+  .pill.PROCESSING{background:#fff1e0;color:#b54708}
+  .pill.COMPLETED{background:#e3f6ec;color:#0c7c59}
+  .pill.REJECTED{background:#fde6e6;color:#c0392b}
+
+  /* buttons */
+  .btn{padding:5px 12px;border-radius:8px;border:1px solid var(--line);background:#fff;font-size:12.5px;
+    font-weight:600;color:#33405c;cursor:pointer;transition:.15s}
+  .btn:hover{border-color:#c3c9dd;background:#fafbff}
+  .btn.primary{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .btn.primary:hover{background:#4d34bd}
+  .btn.ghost{color:var(--brand);border-color:#d8cffb;background:#faf8ff}
+  .btn.danger{color:#c0392b;border-color:#f2c7c7;background:#fef7f7}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn.sm{padding:3px 9px;font-size:12px}
+  .acts{display:flex;gap:6px}
+
+  /* drawer */
+  .mask{position:fixed;inset:0;background:rgba(20,25,40,.38);opacity:0;pointer-events:none;transition:.2s;z-index:40}
+  .mask.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:0;right:0;height:100%;width:560px;max-width:94vw;background:var(--bg);
+    box-shadow:-8px 0 30px rgba(20,25,40,.15);transform:translateX(100%);transition:.25s;z-index:50;
+    display:flex;flex-direction:column}
+  .drawer.on{transform:translateX(0)}
+  .dhead{background:linear-gradient(135deg,#5b3fd6,#7c5cf0);color:#fff;padding:18px 22px}
+  .dhead h2{margin:0 0 3px;font-size:17px}
+  .dhead .did{opacity:.9;font-size:12.5px}
+  .dclose{position:absolute;top:16px;right:18px;color:#fff;font-size:22px;cursor:pointer;line-height:1;border:none;background:none}
+  .dbody{flex:1;overflow:auto;padding:18px 22px}
+
+  .sec-title{font-size:13.5px;font-weight:700;color:var(--brand-ink);margin:6px 0 10px;display:flex;align-items:center;gap:8px}
+  .sec-title .tag{font-weight:600;font-size:11px;color:#8a92a6;background:#eceef3;border-radius:6px;padding:1px 7px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:18px;box-shadow:var(--shadow)}
+
+  /* refund list mini table */
+  .mini{width:100%;border-collapse:collapse;font-size:12.5px}
+  .mini th,.mini td{padding:7px 8px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+  .mini th{background:#f5f6fb;color:#5b6478;font-weight:600}
+  .mini tr:last-child td{border-bottom:none}
+  .empty{color:#9aa1b4;font-size:12.5px;text-align:center;padding:16px}
+
+  /* type tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:14px}
+  .tab{flex:1;padding:10px 8px;border-radius:10px;border:1px solid var(--line);background:#fff;text-align:center;
+    cursor:pointer;font-weight:600;font-size:13px;color:#33405c;transition:.15s}
+  .tab .t2{display:block;font-weight:400;font-size:11px;color:#9aa1b4;margin-top:2px}
+  .tab.on{background:var(--brand);color:#fff;border-color:var(--brand)}
+  .tab.on .t2{color:#e5ddff}
+  .tab.off{opacity:.5;cursor:not-allowed}
+  .tab:not(.on):not(.off):hover{border-color:#c3c9dd}
+
+  /* form */
+  .field{margin-bottom:13px}
+  .field label{display:block;font-size:12.5px;font-weight:600;color:#33405c;margin-bottom:5px}
+  .req{color:#c0392b}
+  input[type=text],input[type=number],select{width:100%;padding:8px 10px;border:1px solid var(--line);
+    border-radius:8px;font-size:13px;background:#fff;color:var(--ink)}
+  input:focus,select:focus{outline:none;border-color:var(--brand);box-shadow:0 0 0 3px var(--brand-soft)}
+  input:read-only,input.ro{background:#eef0f6;color:#7b8398}
+  .hint{font-size:11.5px;color:#b54708;margin-top:4px}
+  .err{font-size:11.5px;color:#c0392b;margin-top:4px;display:none}
+  .seg{display:flex;gap:8px}
+  .seg label{flex:1;border:1px solid var(--line);border-radius:8px;padding:7px;text-align:center;font-size:12.5px;cursor:pointer}
+  .seg input{display:none}
+  .seg input:checked + span{color:var(--brand);font-weight:700}
+  .seg label:has(input:checked){border-color:var(--brand);background:var(--brand-soft)}
+  /* refund destination: one flat radio list, selected option reveals its input */
+  .opts{display:flex;flex-direction:column;gap:8px}
+  .opt{border:1px solid var(--line);border-radius:10px;background:#fff;transition:.15s}
+  .opt:hover{border-color:#c3c9dd}
+  .opt.on{border-color:var(--brand);background:#fbfaff;box-shadow:0 0 0 3px var(--brand-soft)}
+  .opt-hd{display:flex;align-items:flex-start;gap:9px;padding:10px 12px;cursor:pointer;margin:0}
+  .opt-hd input{margin:2px 0 0;accent-color:var(--brand);flex:none}
+  .opt-t{font-size:13px;font-weight:600;color:#33405c;line-height:1.35}
+  .opt-t em{display:block;font-style:normal;font-weight:400;font-size:11.5px;color:var(--muted);margin-top:1px}
+  .opt-x{padding:0 12px 12px 33px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .row2{display:flex;gap:12px}
+  .row2 .field{flex:1}
+  .foot{display:flex;justify-content:flex-end;gap:10px;margin-top:6px}
+
+  /* toast */
+  #toast{position:fixed;left:50%;top:24px;transform:translateX(-50%) translateY(-20px);z-index:99;
+    background:#1c2230;color:#fff;padding:10px 18px;border-radius:10px;font-size:13px;opacity:0;
+    pointer-events:none;transition:.2s;box-shadow:var(--shadow);max-width:80vw}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.ok{background:#0c7c59}#toast.no{background:#c0392b}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Checkout Transactions</h1>
+  <p class="sub">Demo · Click <b>Refund</b> in the Operation column to open the refund panel (only orders with refundable items are enabled). Data is local mock.</p>
+
+  <div class="panel">
+    <table>
+      <thead>
+        <tr>
+          <th>Payment Request ID</th><th>Name</th><th>Amount to Received</th>
+          <th>Paid Amount</th><th>Created Date</th><th>Status</th>
+          <th>Settled</th><th>Fee</th><th style="width:250px">Operation</th>
+        </tr>
+      </thead>
+      <tbody id="orderRows"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Drawer -->
+<div class="mask" id="mask"></div>
+<aside class="drawer" id="drawer">
+  <div class="dhead">
+    <button class="dclose" id="dclose">&times;</button>
+    <h2>Refund</h2>
+    <div class="did">Payment Request ID: <span id="dOrderId">—</span></div>
+  </div>
+  <div class="dbody">
+    <!-- Section A -->
+    <div class="sec-title">Initiated Refunds <span class="tag" id="refundCount">0</span></div>
+    <div class="card" style="padding:0">
+      <table class="mini">
+        <thead>
+          <tr><th>Refund ID</th><th>Type</th><th>Amount</th><th>Currency</th><th>blockchain</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody id="refundRows"></tbody>
+      </table>
+    </div>
+
+    <!-- Section B -->
+    <div class="sec-title">New Refund</div>
+    <div class="card">
+      <div class="tabs" id="typeTabs">
+        <div class="tab" data-type="REFUND">Refund<span class="t2">Standard</span></div>
+        <div class="tab" data-type="VOID">Void<span class="t2">Void payment</span></div>
+        <div class="tab" data-type="RISK_REFUND">Risk Refund<span class="t2">Risk-flagged</span></div>
+      </div>
+      <div id="formArea"></div>
+    </div>
+  </div>
+</aside>
+
+<div id="toast"></div>
+
+<script>
+/* ============ Mock data ============ */
+// value fields carry their currency so the column header stays currency-free
+const ORDERS = [
+  { id:"CKO_900001", name:"John Doe",   recvV:"100.00", recvC:"USD", paidV:"105.50", paidC:"USDT", date:"2026-06-28", status:"SETTLED",          settledV:"100.00", settledC:"USD", feeV:"0.50", feeC:"USD" },
+  { id:"CKO_900002", name:"Acme Ltd.",  recvV:"520.00", recvC:"USD", paidV:"520.00", paidC:"USDT", date:"2026-06-29", status:"SETTLED",          settledV:"520.00", settledC:"USD", feeV:"1.20", feeC:"USD" },
+  { id:"CKO_900003", name:"Alice Wong", recvV:"80.00",  recvC:"USD", paidV:"92.00",  paidC:"USDT", date:"2026-06-29", status:"RECEIVED",         settledV:"—", settledC:"", feeV:"—", feeC:"" },
+  { id:"CKO_900004", name:"Bob Chen",   recvV:"60.00",  recvC:"USD", paidV:"—",      paidC:"",     date:"2026-06-30", status:"AWAITING_PAYMENT", settledV:"—", settledC:"", feeV:"—", feeC:"" },
+];
+
+// Refundable query interface mock (keyed by checkoutId)
+const REFUNDABLE = {
+  "CKO_900001": { checkoutId:"CKO_900001",
+    refundable:{ amount:"95.00", currency:"USD", chainCode:"ETH" },
+    voidable:{ items:[ { amount:"5.00000000000000000", currency:"USDT", chainCode:"BSC" } ] },
+    riskRefundable:null },
+  "CKO_900002": { checkoutId:"CKO_900002",
+    // refund + void may coexist; no risk refund
+    refundable:{ amount:"520.00", currency:"USD", chainCode:"TRC20" },
+    voidable:{ items:[
+      { amount:"12.00", currency:"USDT", chainCode:"TRC20" },
+      { amount:"8.00",  currency:"USDT", chainCode:"ERC20" },
+      { amount:"3.50",  currency:"USDC", chainCode:"TRC20" } ] },
+    riskRefundable:null },
+  "CKO_900003": { checkoutId:"CKO_900003",
+    // risk refund present -> refund & void have no refundable amount
+    refundable:null,
+    voidable:null,
+    riskRefundable:{ items:[ { amount:"12.00", currency:"USDT", chainCode:"BSC" } ] } },
+};
+
+// Initiated refunds mock (keyed by checkoutId)
+const REFUNDS = {
+  "CKO_900001": [
+    { refundId:"REF_20260628_001", refundType:"REFUND", amount:"20.00", currency:"USDT", blockchain:"ETH", status:"COMPLETED" },
+    { refundId:"REF_20260628_002", refundType:"VOID",   amount:"2.00",  currency:"USDT", blockchain:"BSC", status:"INITIATED" },
+  ],
+  "CKO_900002": [],
+  "CKO_900003": [],
+};
+
+// Received-payment source addresses mock (backend: GET /checkouts/{id}/received-payments -> from addresses)
+// Used by "Original Address" refunds; filtered by the blockchain selected in the form.
+const RECEIVED_FROM = {
+  "CKO_900001": [
+    { address:"0x8f3aC1bD2e5F7a90B41cD6e8F2a7B3c95D0e1A24", chainCode:"ETH", currency:"USDT", amount:"95.00", receivedAt:"2026-06-28 10:12", txId:"0xa91c…77e2" },
+    { address:"0x1De4Bb90aC7f23E5d8C6019Af4b25E7A3c8D0F61", chainCode:"ETH", currency:"USDT", amount:"10.50", receivedAt:"2026-06-28 11:40", txId:"0x5b02…c3d9" },
+    { address:"bnb1q7x4h0m2v9rk3n8s5lz6yd4u2c0f8gp1t3wq7e", chainCode:"BSC", currency:"USDT", amount:"5.00",  receivedAt:"2026-06-28 12:05", txId:"0x7fd1…9a4b" },
+  ],
+  "CKO_900002": [
+    { address:"TQ5nB8xYv2Wd7KpR3mLc6HsJ9fA1tZ4eUg", chainCode:"TRC20", currency:"USDT", amount:"500.00", receivedAt:"2026-06-29 09:02", txId:"3f8a…d17c" },
+    { address:"TRk2Pd9LmX4vB7qN1sHc5YjZ6tE8aW3uGf", chainCode:"TRC20", currency:"USDT", amount:"20.00",  receivedAt:"2026-06-29 09:31", txId:"9c2b…41ae" },
+    { address:"0xC42fE7a01B9d3856Ff2A1c70E9b84D6a5C3170Bd", chainCode:"ERC20", currency:"USDT", amount:"8.00", receivedAt:"2026-06-29 10:15", txId:"0x22ef…8b70" },
+    { address:"TZ9hV3nQ6bJ2xR8mK4pL7sD1cY5tA0eWuF", chainCode:"TRC20", currency:"USDC", amount:"3.50", receivedAt:"2026-06-29 10:48", txId:"6d4c…2f91" },
+  ],
+  "CKO_900003": [
+    { address:"bnb1z8k5r2m7v4qd9n3s6lw1yc0u8f2gp5t7xe3ja", chainCode:"BSC", currency:"USDT", amount:"12.00", receivedAt:"2026-06-29 14:20", txId:"0xb3c7…15da" },
+  ],
+};
+
+const TYPE_LABEL = { REFUND:"Refund", VOID:"Void", RISK_REFUND:"Risk Refund" };
+let curOrderId = null, curType = null, seq = 100;
+
+/* ============ Helpers ============ */
+const $ = s => document.querySelector(s);
+function toast(msg, kind){ const t=$("#toast"); t.textContent=msg; t.className="on "+(kind||""); setTimeout(()=>t.className="",1900); }
+function pill(s){ return `<span class="pill ${s}">${s}</span>`; }
+function money(v,c){ return (v==="—"||!v) ? "—" : `${v}${c?" "+c:""}`; }
+function genRefundId(){ const d=new Date().toISOString().slice(0,10).replace(/-/g,""); return `REF_${d}_${String(++seq).padStart(3,"0")}`; }
+function genClientRefundId(){ return "CRID_"+Math.random().toString(36).slice(2,10).toUpperCase(); }
+
+/* ============ Transaction list ============ */
+function renderOrders(){
+  $("#orderRows").innerHTML = ORDERS.map(o=>{
+    const canClose  = ["OPENING","AWAITING_PAYMENT"].includes(o.status);
+    const canAccept = o.status==="RECEIVED";
+    const canRefund = !!REFUNDABLE[o.id];
+    return `<tr>
+      <td><b>${o.id}</b></td><td>${o.name}</td><td class="num">${money(o.recvV,o.recvC)}</td>
+      <td class="num">${money(o.paidV,o.paidC)}</td><td>${o.date}</td><td>${pill(o.status)}</td>
+      <td class="num">${money(o.settledV,o.settledC)}</td><td class="num">${money(o.feeV,o.feeC)}</td>
+      <td><div class="acts">
+        <button class="btn sm" ${canClose?"":"disabled"}>Close</button>
+        <button class="btn sm" ${canAccept?"":"disabled"}>Accept Order</button>
+        <button class="btn sm ghost" ${canRefund?"":"disabled"} onclick="openRefund('${o.id}')">Refund</button>
+      </div></td>
+    </tr>`;
+  }).join("");
+}
+
+/* ============ Drawer open/close ============ */
+function openRefund(id){
+  curOrderId = id;
+  $("#dOrderId").textContent = id;
+  renderRefundList();
+  initTabs();
+  $("#mask").classList.add("on");
+  $("#drawer").classList.add("on");
+}
+function closeRefund(){ $("#mask").classList.remove("on"); $("#drawer").classList.remove("on"); }
+$("#mask").onclick = closeRefund;
+$("#dclose").onclick = closeRefund;
+
+/* ============ Section A: initiated refunds ============ */
+function renderRefundList(){
+  const list = REFUNDS[curOrderId] || [];
+  $("#refundCount").textContent = list.length;
+  if(!list.length){ $("#refundRows").innerHTML = `<tr><td colspan="7" class="empty">No refunds initiated yet</td></tr>`; return; }
+  $("#refundRows").innerHTML = list.map((r,i)=>`
+    <tr>
+      <td>${r.refundId}</td><td>${TYPE_LABEL[r.refundType]||r.refundType}</td>
+      <td class="num">${r.amount}</td><td>${r.currency}</td><td>${r.blockchain}</td>
+      <td>${pill(r.status)}</td>
+      <td>${ r.status==="INITIATED" ? `<button class="btn sm danger" onclick="cancelRefund(${i})">Cancel</button>` : `<span style="color:#c3c9dd">—</span>` }</td>
+    </tr>`).join("");
+}
+// Cancel = Close Refund (INITIATED only)
+function cancelRefund(i){
+  const r = REFUNDS[curOrderId][i];
+  if(r.status!=="INITIATED") return;
+  if(!confirm(`Close refund ${r.refundId}?`)) return;
+  // mock: POST /refunds/{refundId}/close  ->  { code:"SUCCESS" }
+  r.status = "CLOSED";
+  renderRefundList();
+  toast("Refund closed","ok");
+}
+
+/* ============ Section B: type tabs ============ */
+function initTabs(){
+  const rf = REFUNDABLE[curOrderId] || {};
+  const avail = {
+    REFUND: !!rf.refundable,
+    VOID: !!(rf.voidable && rf.voidable.items && rf.voidable.items.length),
+    RISK_REFUND: !!(rf.riskRefundable && rf.riskRefundable.items && rf.riskRefundable.items.length),
+  };
+  const tabs = document.querySelectorAll("#typeTabs .tab");
+  let firstAvail = null;
+  tabs.forEach(tab=>{
+    const t = tab.dataset.type;
+    tab.classList.remove("on","off");
+    if(!avail[t]){ tab.classList.add("off"); tab.title="No refundable items of this type for this order"; tab.onclick=null; }
+    else { tab.title=""; tab.onclick=()=>selectType(t); if(!firstAvail) firstAvail=t; }
+  });
+  if(firstAvail){ selectType(firstAvail); }
+  else { curType=null; $("#formArea").innerHTML = `<div class="empty">No refund available for this order</div>`; }
+}
+function selectType(t){
+  curType = t;
+  document.querySelectorAll("#typeTabs .tab").forEach(tab=>{
+    tab.classList.toggle("on", tab.dataset.type===t && !tab.classList.contains("off"));
+  });
+  renderForm();
+}
+
+/* ============ Section B: form ============ */
+function refundInfoBlock(){
+  return `
+    <div class="field">
+      <label>Refund Destination <span class="req">*</span></label>
+      <div class="opts">
+        <div class="opt on" data-opt="original">
+          <label class="opt-hd">
+            <input type="radio" name="riMode" value="original" checked onchange="toggleRI()">
+            <span class="opt-t">Original payment address<em>Send the refund back to the address it was paid from</em></span>
+          </label>
+          <div class="opt-x" id="riOrigWrap"><select id="riOrigAddr"></select></div>
+        </div>
+
+        <div class="opt" data-opt="new">
+          <label class="opt-hd">
+            <input type="radio" name="riMode" value="new" onchange="toggleRI()">
+            <span class="opt-t">New address<em>Enter a different on-chain address to refund to</em></span>
+          </label>
+          <div class="opt-x" id="riNewWrap" style="display:none">
+            <input type="text" id="riAddr" class="mono" placeholder="Payer on-chain address, e.g. T... / 0x...">
+          </div>
+        </div>
+
+        <div class="opt" data-opt="email">
+          <label class="opt-hd">
+            <input type="radio" name="riMode" value="email" onchange="toggleRI()">
+            <span class="opt-t">Email collection<em>Email the payer and let them fill in the address</em></span>
+          </label>
+          <div class="opt-x" id="riEmailWrap" style="display:none">
+            <input type="text" id="riEmail" placeholder="buyer@example.com">
+          </div>
+        </div>
+      </div>
+      <div class="hint" id="riHint">Refund will be sent back to the original payment address.</div>
+      <div class="err" id="riErr">Please enter a valid refund address.</div>
+    </div>`;
+}
+
+// Blockchain currently selected in the form (REFUND uses #rChain, VOID / RISK_REFUND use #vChain)
+function currentChain(){ const el = $("#rChain") || $("#vChain"); return el ? el.value : null; }
+
+// Backend mock: received-payment source addresses of this order, on the selected blockchain
+function origAddrOptions(){
+  const chain = currentChain();
+  return (RECEIVED_FROM[curOrderId] || []).filter(a => !chain || a.chainCode === chain);
+}
+// (Re)populate the Original Address dropdown — must be called whenever the blockchain changes
+function refreshOrigAddr(){
+  const sel = $("#riOrigAddr");
+  if(!sel) return;
+  const list = origAddrOptions();
+  if(!list.length){
+    sel.disabled = true;
+    sel.innerHTML = `<option value="">No received-payment address on this blockchain</option>`;
+  } else {
+    sel.disabled = false;
+    sel.innerHTML = list.map((a,i)=>`<option value="${i}">${a.address}</option>`).join("");
+  }
+}
+const RI_HINT = {
+  original:"Refund will be sent back to the original payment address.",
+  new:"Refund will be sent to the new address you enter.",
+  email:"An address-collection email will be sent to the payer to fill in the refund address.",
+};
+function riMode(){ return document.querySelector('input[name=riMode]:checked').value; }
+// Only the selected option reveals its input
+function toggleRI(){
+  const m = riMode();
+  $("#riOrigWrap").style.display  = m==="original" ? "block" : "none";
+  $("#riNewWrap").style.display   = m==="new"      ? "block" : "none";
+  $("#riEmailWrap").style.display = m==="email"    ? "block" : "none";
+  document.querySelectorAll(".opt").forEach(o => o.classList.toggle("on", o.dataset.opt===m));
+  $("#riHint").textContent = RI_HINT[m];
+  $("#riErr").style.display="none";
+}
+
+function renderForm(){
+  const rf = REFUNDABLE[curOrderId];
+  if(curType==="REFUND"){
+    const d = rf.refundable;
+    $("#formArea").innerHTML = `
+      <div class="row2">
+        <div class="field">
+          <label>Refund Currency <span class="req">*</span></label>
+          <select id="rCur"><option value="${d.currency}">${d.currency}</option></select>
+        </div>
+        <div class="field">
+          <label>blockchain <span class="req">*</span></label>
+          <select id="rChain"><option value="${d.chainCode}">${d.chainCode}</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Refund Amount <span class="req">*</span></label>
+        <input type="number" id="amount" step="0.01" min="0" placeholder="0.00">
+        <div class="hint">Max refundable: ${d.amount} ${d.currency}</div>
+        <div class="err" id="amtErr"></div>
+      </div>
+      <div class="field">
+        <label>Fee Bearer <span class="req">*</span></label>
+        <select id="feeBearer"><option value="MERCHANT">MERCHANT (payer receives full amount)</option><option value="BUYER">BUYER (fee deducted from amount)</option></select>
+      </div>
+      ${refundInfoBlock()}
+      <div class="foot"><button class="btn" onclick="closeRefund()">Cancel</button><button class="btn primary" onclick="submitRefund()">Confirm Refund</button></div>`;
+    refreshOrigAddr(); // REFUND: blockchain is fixed, fill the list once
+  } else {
+    // VOID / RISK_REFUND
+    const items = (curType==="VOID"? rf.voidable : rf.riskRefundable).items;
+    const currencies = [...new Set(items.map(i=>i.currency))];
+    $("#formArea").innerHTML = `
+      <div class="row2">
+        <div class="field">
+          <label>Refund Currency <span class="req">*</span></label>
+          <select id="vCur" onchange="onCurChange()">${currencies.map(c=>`<option value="${c}">${c}</option>`).join("")}</select>
+        </div>
+        <div class="field">
+          <label>blockchain <span class="req">*</span></label>
+          <select id="vChain" onchange="onChainChange()"></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Refund Amount (system-determined, for reference)</label>
+        <input class="ro" type="text" id="vAmt" readonly>
+      </div>
+      ${refundInfoBlock()}
+      <div class="foot"><button class="btn" onclick="closeRefund()">Cancel</button><button class="btn primary" onclick="submitRefund()">Confirm Refund</button></div>`;
+    onCurChange();
+  }
+}
+function curItems(){ const rf=REFUNDABLE[curOrderId]; return (curType==="VOID"?rf.voidable:rf.riskRefundable).items; }
+function onCurChange(){
+  const cur = $("#vCur").value;
+  const chains = curItems().filter(i=>i.currency===cur).map(i=>i.chainCode);
+  $("#vChain").innerHTML = chains.map(c=>`<option value="${c}">${c}</option>`).join("");
+  onChainChange();
+}
+function onChainChange(){
+  const cur=$("#vCur").value, chain=$("#vChain").value;
+  const it = curItems().find(i=>i.currency===cur && i.chainCode===chain);
+  $("#vAmt").value = it ? `${it.amount} ${it.currency}` : "—";
+  refreshOrigAddr(); // the original-address list depends on the selected blockchain
+}
+
+/* ============ Submit ============ */
+function readRefundInfo(){
+  const mode = riMode();
+  if(mode==="original"){
+    const a = origAddrOptions()[parseInt($("#riOrigAddr").value,10)];
+    if(!a){ $("#riErr").textContent="No original payment address on this blockchain. Please choose New address."; $("#riErr").style.display="block"; return null; }
+    return { refundInfo:{ refundAddress:a.address, addressSource:"ORIGINAL" } };
+  }
+  if(mode==="new"){
+    const v=$("#riAddr").value.trim();
+    if(!v){ $("#riErr").textContent="Please enter a refund address."; $("#riErr").style.display="block"; return null; }
+    return { refundInfo:{ refundAddress:v, addressSource:"NEW" } };
+  }
+  const v=$("#riEmail").value.trim();
+  if(!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){ $("#riErr").textContent="Please enter a valid email."; $("#riErr").style.display="block"; return null; }
+  return { refundInfo:{ email:v } };
+}
+function submitRefund(){
+  const rf = REFUNDABLE[curOrderId];
+  const ri = readRefundInfo();
+  if(!ri) return;
+  let payload, newRow;
+
+  if(curType==="REFUND"){
+    const d=rf.refundable, amt=$("#amount").value.trim(), max=parseFloat(d.amount);
+    const errEl=$("#amtErr"); errEl.style.display="none";
+    if(!amt || parseFloat(amt)<=0){ errEl.textContent="Please enter a refund amount."; errEl.style.display="block"; return; }
+    if(parseFloat(amt)>max){ errEl.textContent=`Cannot exceed max refundable ${d.amount}`; errEl.style.display="block"; return; }
+    payload = { originalTransactionType:"CHECKOUT", originalTransactionId:curOrderId,
+      amount:amt, feeBearer:$("#feeBearer").value, clientRefundId:genClientRefundId(), refundInfo:ri.refundInfo };
+    newRow = { refundId:genRefundId(), refundType:"REFUND", amount:amt, currency:d.currency, blockchain:d.chainCode, status:"INITIATED" };
+  } else {
+    const cur=$("#vCur").value, chain=$("#vChain").value;
+    const it=curItems().find(i=>i.currency===cur && i.chainCode===chain);
+    payload = { originalTransactionType:"CHECKOUT", originalTransactionId:curOrderId,
+      clientRefundId:genClientRefundId(), refundCurrency:cur, blockchain:chain, refundInfo:ri.refundInfo };
+    newRow = { refundId:genRefundId(), refundType:curType, amount:it.amount, currency:cur, blockchain:chain, status:"INITIATED" };
+  }
+
+  console.log("POST refund payload ->", curType, payload); // mock request
+  (REFUNDS[curOrderId] = REFUNDS[curOrderId]||[]).unshift(newRow);
+  renderRefundList();
+  toast(`${TYPE_LABEL[curType]} initiated: ${newRow.refundId}`,"ok");
+  renderForm(); // reset form
+}
+
+/* ============ init ============ */
+renderOrders();
+</script>
+</body>
+</html>
