@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Auto Accept Config</title>
+<style>
+:root {
+  --bg: #edf0f6;
+  --surface: #ffffff;
+  --text: #1b1b1b;
+  --text-secondary: #5a5e6b;
+  --border: #d8dce6;
+  --accent: #3fb9b5;
+  --brand: #211050;
+  --green: #16a34a;
+  --green-light: #dcfce7;
+  --red: #dc2626;
+  --red-light: #fee2e2;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111318;
+    --surface: #1c1e26;
+    --text: #e4e5ea;
+    --text-secondary: #9a9daa;
+    --border: #2e3140;
+    --green-light: #14532d;
+    --red-light: #450a0a;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318;
+  --surface: #1c1e26;
+  --text: #e4e5ea;
+  --text-secondary: #9a9daa;
+  --border: #2e3140;
+  --green-light: #14532d;
+  --red-light: #450a0a;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding-inline: 16px;
+  padding-block: 32px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px;
+  width: 100%;
+  max-width: 420px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 24px;
+  letter-spacing: 0.01em;
+}
+
+.toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.toggle-label {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.toggle-desc {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* Toggle switch */
+.toggle {
+  position: relative;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+  position: absolute;
+}
+.toggle-track {
+  position: absolute;
+  inset: 0;
+  background: var(--border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-track::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: #fff;
+  border-radius: 50%;
+  transition: transform 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15);
+}
+.toggle input:checked + .toggle-track {
+  background: var(--green);
+}
+.toggle input:checked + .toggle-track::after {
+  transform: translateX(20px);
+}
+.toggle input:focus-visible + .toggle-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Status pill */
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-top: 12px;
+  transition: all 0.2s;
+}
+.status--on {
+  background: var(--green-light);
+  color: var(--green);
+}
+.status--off {
+  background: var(--red-light);
+  color: var(--red);
+}
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Sub-options */
+.sub-options {
+  overflow: hidden;
+  max-height: 0;
+  opacity: 0;
+  transition: max-height 0.3s ease, opacity 0.25s ease, margin 0.3s ease;
+  margin-top: 0;
+}
+.sub-options.open {
+  max-height: 200px;
+  opacity: 1;
+  margin-top: 20px;
+}
+
+.sub-options-inner {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+}
+
+.sub-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  letter-spacing: 0.02em;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.radio-option:hover {
+  border-color: var(--accent);
+}
+.radio-option.selected {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.radio-option input[type="radio"] {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 1px;
+  position: relative;
+  cursor: pointer;
+  transition: border-color 0.15s;
+}
+.radio-option input[type="radio"]:checked {
+  border-color: var(--accent);
+}
+.radio-option input[type="radio"]:checked::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 8px;
+  height: 8px;
+  background: var(--accent);
+  border-radius: 50%;
+}
+.radio-option input[type="radio"]:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.radio-text {
+  font-size: 14px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+.radio-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Output preview */
+.output {
+  margin-top: 20px;
+  padding: 14px;
+  background: var(--bg);
+  border-radius: 8px;
+  font-family: "SF Mono", "Fira Code", "Consolas", monospace;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div class="card-title">Auto Accept Configuration</div>
+
+  <div class="toggle-row">
+    <div>
+      <div class="toggle-label">Auto Accept</div>
+      <div class="toggle-desc">Automatically accept incoming payments</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="autoAcceptToggle">
+      <span class="toggle-track"></span>
+    </label>
+  </div>
+
+  <div id="statusPill" class="status status--off">
+    <span class="status-dot"></span>
+    OFF
+  </div>
+
+  <div id="subOptions" class="sub-options">
+    <div class="sub-options-inner">
+      <div class="sub-title">Accept Mode</div>
+      <div class="radio-group">
+        <label class="radio-option" id="opt-exact">
+          <input type="radio" name="acceptMode" id="modeExact" value="exact">
+          <div>
+            <div class="radio-text">Exact Amount（等额）</div>
+            <div class="radio-hint">Only accept when paid amount = order amount</div>
+          </div>
+        </label>
+        <label class="radio-option" id="opt-gte">
+          <input type="radio" name="acceptMode" id="modeGte" value="exact_or_over">
+          <div>
+            <div class="radio-text">Exact or Over（等额或超额）</div>
+            <div class="radio-hint">Accept when paid amount ≥ order amount</div>
+          </div>
+        </label>
+      </div>
+    </div>
+  </div>
+
+  <div class="output" id="output">autoAccept: OFF</div>
+</div>
+
+<script>
+var toggle = document.getElementById('autoAcceptToggle');
+var sub = document.getElementById('subOptions');
+var pill = document.getElementById('statusPill');
+var output = document.getElementById('output');
+var radios = document.querySelectorAll('input[name="acceptMode"]');
+var optExact = document.getElementById('opt-exact');
+var optGte = document.getElementById('opt-gte');
+
+function updateOutput() {
+  if (!toggle.checked) {
+    pill.className = 'status status--off';
+    pill.innerHTML = '<span class="status-dot"></span> OFF';
+    output.textContent = 'autoAccept: OFF';
+    return;
+  }
+  pill.className = 'status status--on';
+  pill.innerHTML = '<span class="status-dot"></span> ON';
+  var mode = document.querySelector('input[name="acceptMode"]:checked');
+  if (mode) {
+    var label = mode.value === 'exact' ? 'EXACT' : 'EXACT_OR_OVER';
+    output.textContent = 'autoAccept: ON\nacceptMode: ' + label;
+  } else {
+    output.textContent = 'autoAccept: ON\nacceptMode: (not selected)';
+  }
+}
+
+function updateRadioHighlight() {
+  optExact.classList.toggle('selected', document.getElementById('modeExact').checked);
+  optGte.classList.toggle('selected', document.getElementById('modeGte').checked);
+}
+
+toggle.addEventListener('change', function() {
+  if (this.checked) {
+    sub.classList.add('open');
+  } else {
+    sub.classList.remove('open');
+    radios.forEach(function(r) { r.checked = false; });
+    updateRadioHighlight();
+  }
+  updateOutput();
+});
+
+radios.forEach(function(r) {
+  r.addEventListener('change', function() {
+    updateRadioHighlight();
+    updateOutput();
+  });
+});
+
+updateOutput();
+</script>
+</body>
+</html>
