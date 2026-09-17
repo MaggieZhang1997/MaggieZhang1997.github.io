@@ -347,6 +347,8 @@ function updateRadioHighlight() {
 toggle.addEventListener('change', function() {
   if (this.checked) {
     sub.classList.add('open');
+    document.getElementById('modeExact').checked = true;
+    updateRadioHighlight();
   } else {
     sub.classList.remove('open');
     radios.forEach(function(r) { r.checked = false; });
